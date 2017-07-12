@@ -4,8 +4,8 @@ from ase.calculators.vasp import Vasp
 from ase.optimize import BFGS
 from ase.constraints import StrainFilter
 from ase.db import connect
-import re
-import sys
+import os,sys
+import shutil
 
 jsonfile = "bulk_data.json"
 
@@ -21,10 +21,18 @@ ediff  = 1.0e-6
 ediffg = -0.001
 kpts=[10, 10, 10]
 
+cudir = os.getcwd()
+#
+# make and move to working directory
+#
+
 bulk = bulk(element, lattice, a=a0, cubic=True)
 # bulk = bulk.repeat((2,2,2))
 
 for xc in ["PBEsol", "PBE", "PW91", "RPBE"]:
+	workdir = os.path.join(cudir, element, xc)
+	os.makedirs(workdir)
+	os.chdir(workdir)
 
 	xc = xc.lower()
 	if xc == "pbe" or xc == "pbesol" or xc == "rpbe":
@@ -51,9 +59,16 @@ for xc in ["PBEsol", "PBE", "PW91", "RPBE"]:
 	print("optimized lattice constant : %f" % bulk.cell[0,0])
 
 	#
-	# what to write
+	# return to parent direcotry
+	#
+	os.chdir(cudir)
+	shutil.rmtree(workdir)
+	#
+	# write to json file
 	#
 	db = connect(jsonfile)
-	db.write(bulk,
-		data = {"element" : element, "lattice" : lattice} )
+#	db.write(bulk,
+#		data = {"element" : element, "lattice" : lattice} )
+ 	db.write(bulk,
+ 		 element=element, lattice=lattice, xc=xc )
 
