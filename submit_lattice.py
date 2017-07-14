@@ -16,6 +16,6 @@ dict = {
 for element in dict:
 	lattice = dict[element]["lattice"]
 	a0      = dict[element]["a0"]
-	command = "qsub run.sh " + str(element) + " " + str(lattice) + " " + str(a0)
+	command = "qsub run_lattice.sh " + str(element) + " " + str(lattice) + " " + str(a0)
 	os.system(command)
 
