@@ -27,7 +27,6 @@ cudir = os.getcwd()
 #
 
 bulk = bulk(element, lattice, a=a0, cubic=True)
-# bulk = bulk.repeat((2,2,2))
 
 for xc in ["PBEsol", "PBE", "PW91", "RPBE"]:
 	workdir = os.path.join(cudir, element, xc)
@@ -57,7 +56,6 @@ for xc in ["PBEsol", "PBE", "PW91", "RPBE"]:
 	trajectory = element + "_" + "lattice.traj"
 
 	print("optimized lattice constant : %f" % bulk.cell[0,0])
-
 	#
 	# return to parent direcotry
 	#
@@ -67,8 +65,5 @@ for xc in ["PBEsol", "PBE", "PW91", "RPBE"]:
 	# write to json file
 	#
 	db = connect(jsonfile)
-#	db.write(bulk,
-#		data = {"element" : element, "lattice" : lattice} )
- 	db.write(bulk,
- 		 element=element, lattice=lattice, xc=xc )
-
+ 	db.write(bulk, element=element, lattice=lattice, xc=xc )
+ 	
