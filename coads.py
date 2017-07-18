@@ -5,6 +5,8 @@ from ase.optimize import BFGS
 from ase.build import bulk, surface, add_adsorbate
 from ase.db import connect
 
+from vasptools import *
+
 import os,sys
 import shutil
 import numpy as np
@@ -12,14 +14,12 @@ import numpy as np
 from ase.visualize import view # debugging
 #
 # Determine lattice constant.
-# Take from bulk database.
 #
 # basic conditions
 #
 argvs     = sys.argv
-element   = argvs[1]
+element1  = argvs[1]
 
-lattice   = "fcc"
 face      = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
 adsorbate = "CO"
 ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
@@ -29,9 +29,10 @@ position  = (0,0) # ontop
 #
 xc     = "pw91"
 vacuum = 10.0
-nlayer = 5
+nlayer = 3
 nrelax = 2
-repeat_size = (3,3,1)
+repeat_size = (1,1,1)
+repeat_bulk = 2
 #
 # INCAR keywords
 #
@@ -47,7 +48,8 @@ kpts=[3, 3, 1]
 #
 cudir   = os.getcwd()
 # workdir = os.path.join(cudir, element, face_str, adsorbate)
-workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)
+# workdir = os.path.join(cudir, element1 + "_" + face_str + "_" + adsorbate)
+workdir = os.path.join(cudir, "tmpdir")
 # shutil.rmtree(workdir)
 os.makedirs(workdir)
 os.chdir(workdir)
@@ -78,30 +80,47 @@ elif xc == "lda":
 else:
 	print("xc error")
 #
+# ------------------------ bulk ---------------------------
+#
+bulk = make_bulk(element1, repeat=repeat_bulk)
+lattice,a0 = lattice_info_guess(bulk)
+a = get_optimized_lattice_constant(bulk,lattice=lattice,a0=a0)
+print "optimied lattice constant",a
+view(bulk)
+"""
+#
 # ------------------------ surface ------------------------
 #
 # load lattice constant form bulk calculaiton database
 #
-atoms = db_bulk.get_atoms(element=element, xc="pbesol")
-a = atoms.cell[0,0]
-#
 # surface construction
 #
-bulk = bulk(element, lattice, a=a, cubic=False)
+# bulk = bulk(element, lattice, a=a, cubic=False)
+cell = [a,a,a]
+bulk.set_cell(cell)
 surf = surface(bulk, face, nlayer, vacuum=vacuum)
 #
 # setting tags for relax/freeze
 #
+nlayer = nlayer * repeat_bulk
 tag = np.ones(nlayer, int)
+
 for i in range(nlayer-1, nlayer-nrelax-1, -1):
 	tag[i] = 0
-surf.set_tags(tag)
+print "tag",tag
+print "old tag", surf.get_tags()
+
+view(surf)
+
+# surf.set_tags(tag)
+
 #
 # making surface
 #
 c = FixAtoms(indices=[atom.index for atom in surf if atom.tag == 1])
 surf.set_constraint(c)
 surf = surf.repeat(repeat_size)
+view(surf)
 #
 # calulate
 #
@@ -122,7 +141,6 @@ efermi = calc_surf.read_fermi()
 
 print "fermi energy:",efermi
 
-"""
 db_surf.write(surf, element=element, lattice=lattice, face=face_str)
 #
 # ------------------------ adsorbate ------------------------

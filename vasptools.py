@@ -22,9 +22,9 @@ def lattice_info_guess(bulk):
 		lattice = "fcc"
 		a0 = 4.0
 
-	return lattice,a0
+	return lattice, a0
 
-def make_bulk(element1, element2=None, comp1=100,lattice="fcc",a0=4.0,repeat=2):
+def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=2):
 	from ase import Atoms
 	from ase.build import bulk
 	import numpy as np
@@ -39,12 +39,12 @@ def make_bulk(element1, element2=None, comp1=100,lattice="fcc",a0=4.0,repeat=2):
 	# form bulk first
 	#
 	bulk = bulk(element1, lattice, a=a0, cubic=True)
+	bulk = bulk.repeat( (repeat,repeat,repeat) ) # for consistency with alloys
 
 	if element2 is not None:
 		#
 		# make alloy if needed
 		#
-		bulk = bulk.repeat( (repeat,repeat,repeat) )
 		natom_tot = len(bulk.get_atomic_numbers())
 		natom2    = int(comp2 * natom_tot)
 		natom1    = natom_tot - natom2
@@ -62,19 +62,19 @@ def make_bulk(element1, element2=None, comp1=100,lattice="fcc",a0=4.0,repeat=2):
 	return bulk
 
 def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
-	""" function to return optimized bulk constant
+	""" 
+	function to return optimized bulk constant
 	"""
 	from ase import Atoms
-#	from ase.calculators.vasp import Vasp
- 	from ase.calculators.emt import EMT
+ 	from ase.calculators.vasp import Vasp
 	#
 	# compuational condition for Vasp
 	#
 	prec   = "normal"
 	potim  = 0.1
-	ediff  = 1.0e-6
-	ediffg = -0.001
-	kpts = [10, 10, 10]
+	ediff  = 1.0e-4
+	ediffg = -0.01
+	kpts = [2, 2, 2]
 
 	xc = xc.lower()
 	if xc == "pbe" or xc == "pbesol" or xc == "rpbe":
@@ -86,14 +86,12 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	else:
 		print("xc error")
 
-	calc = EMT()
-
-#	calc = Vasp(	prec=prec, xc=xc, pp=pp, ispin=2,
-#					ismear=1, sigma=0.2,
-#					isif=3,
-#					ibrion=2, nsw=100, potim=potim, ediffg=ediffg,
-#	    			kpts=kpts
-#				)
+ 	calc = Vasp(	prec=prec, xc=xc, pp=pp, ispin=2,
+			ismear=1, sigma=0.2,
+ 			isif=3,
+ 			ibrion=2, nsw=100, potim=potim, ediffg=ediffg,
+     			kpts=kpts
+ 		)
 
 	bulk.set_calculator(calc)
 	bulk.get_potential_energy()
@@ -101,4 +99,34 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	a = bulk.cell[0,0] # optimized lattice constant
 
 	return a
+
+def gaussian(x,x0,a,b):
+	"""
+	  y = a*exp(-b*(x-x0)**2)
+	"""
+	import numpy as np
+	x = np.array(x)
+	y = np.exp( -b*(x-x0)**2 )
+	y = a*y
+	return y
+
+def smear_dos(dos, sigma=5.0):
+	"""
+	  get smeared dos
+	"""
+	import numpy as np
+
+	x = dos.energy
+	y = dos.dos
+
+	length = len(x)
+	y2  = np.zeros(length)
+
+	for i,j in enumerate(x):
+		x0 = x[i]
+		a = y[i]
+		ytmp = gaussian(x, x0, a=a, b=5.0)
+		y2 = y2 + ytmp
+
+	return y2
 
