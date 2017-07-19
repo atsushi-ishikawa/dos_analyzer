@@ -123,14 +123,14 @@ e_surf = surf.get_potential_energy()
 #
 # copy DOSCAR
 #
-dosfile  = "DOSCAR_" + element + face_str
+dosfile  = "DOSCAR_" + element1 + face_str
 dosfile  = os.path.join(cudir, dosfile)
 os.system("cp DOSCAR %s" % dosfile)
 efermi = calc_surf.read_fermi()
 
 print "fermi energy:",efermi
 
-db_surf.write(surf, element=element, lattice=lattice, face=face_str)
+# db_surf.write(surf, element=element1, lattice=lattice, face=face_str)
 #
 # ------------------------ adsorbate ------------------------
 #

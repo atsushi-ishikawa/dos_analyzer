@@ -39,7 +39,7 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
 	# form bulk first
 	#
 	bulk = bulk(element1, lattice, a=a0, cubic=True)
-	bulk = bulk.repeat( (repeat,repeat,repeat) ) # for consistency with alloys
+	bulk = bulk.repeat( repeat ) # for consistency with alloys
 
 	if element2 is not None:
 		#
@@ -110,14 +110,14 @@ def gaussian(x,x0,a,b):
 	y = a*y
 	return y
 
-def smear_dos(dos, sigma=5.0):
+def smear_dos(energy, dos, sigma=5.0):
 	"""
 	  get smeared dos
 	"""
 	import numpy as np
 
-	x = dos.energy
-	y = dos.dos
+	x = energy
+	y = dos
 
 	length = len(x)
 	y2  = np.zeros(length)
@@ -125,7 +125,7 @@ def smear_dos(dos, sigma=5.0):
 	for i,j in enumerate(x):
 		x0 = x[i]
 		a = y[i]
-		ytmp = gaussian(x, x0, a=a, b=5.0)
+		ytmp = gaussian(x, x0, a=a, b=sigma)
 		y2 = y2 + ytmp
 
 	return y2
@@ -162,4 +162,38 @@ def sort_atoms_by_z(atoms):
 	newatoms.set_cell(cell)
 
 	return newatoms
+
+
+def findpeak(x, y):
+	import numpy as np
+	import peakutils 
+	import matplotlib.pylab as plt
+
+	indexes = peakutils.indexes(y, thres=0.01, min_dist=1)
+	return indexes
+
+def fit_func(x, *params):
+	import numpy as np
+	y = np.zeros_like(x)
+	for i in range(0, len(params), 3):
+		ctr = params[i]     # position
+		amp = params[i+1]   # height
+		wid = params[i+2]   # width (smaller is sharper)
+		y   = y + amp * np.exp( -((x-ctr)/wid)**2 )
+	return y
+
+def gaussian_fit(x, y, guess):
+	from scipy.optimize import curve_fit
+	import numpy as np
+	import matplotlib.pylab as plt
+
+	popt, pcov = curve_fit(fit_func, x, y, p0=guess)
+
+	fit = fit_func(x,*popt)
+
+	return popt
+
+#	plt.plot(x,y)
+#	plt.plot(x,fit,"r-")
+#	plt.show()
 
