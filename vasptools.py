@@ -130,9 +130,15 @@ def smear_dos(dos, sigma=5.0):
 
 	return y2
 
-def sort_atom_by_z(atoms):
+def sort_atoms_by_z(atoms):
 	from ase import Atoms, Atom
 	import numpy as np
+	#
+	# keep information for original Atoms
+	#
+	tags = atoms.get_tags()
+	pbc  = atoms.get_pbc()
+	cell = atoms.get_cell()
 
 	dtype = [("idx",int), ("z",float)]
 	zlist = np.array([], dtype=dtype)
@@ -148,6 +154,12 @@ def sort_atom_by_z(atoms):
 	for i in zlist:
 		idx = i[0]
 		newatoms.append(atoms[idx])
+	#
+	# restore
+	#
+	newatoms.set_tags(tags)
+	newatoms.set_pbc(pbc)
+	newatoms.set_cell(cell)
 
 	return newatoms
 
