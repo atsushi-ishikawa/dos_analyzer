@@ -31,18 +31,17 @@ xc     = "pw91"
 vacuum = 10.0
 nlayer = 3
 nrelax = 2
-repeat_size = (1,1,1)
 repeat_bulk = 2
 #
 # INCAR keywords
 #
 prec   = "low"
-encut  = 350.0
-potim  = 0.1
-nsw    = 0
-ediff  = 1.0e-2
+encut  =  350.0
+potim  =  0.1
+nsw    =  0
+ediff  =  1.0e-2
 ediffg = -0.05
-kpts=[3, 3, 1]
+kpts   = [3, 3, 1]
 #
 # directry things
 #
@@ -83,11 +82,8 @@ else:
 # ------------------------ bulk ---------------------------
 #
 bulk = make_bulk(element1, repeat=repeat_bulk)
-lattice,a0 = lattice_info_guess(bulk)
-a = get_optimized_lattice_constant(bulk,lattice=lattice,a0=a0)
-print "optimied lattice constant",a
-view(bulk)
-"""
+lattice, a0 = lattice_info_guess(bulk)
+a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
 #
 # ------------------------ surface ------------------------
 #
@@ -95,32 +91,25 @@ view(bulk)
 #
 # surface construction
 #
-# bulk = bulk(element, lattice, a=a, cubic=False)
-cell = [a,a,a]
+cell = [a, a, a]
 bulk.set_cell(cell)
 surf = surface(bulk, face, nlayer, vacuum=vacuum)
+surf = sort_atoms_by_z(surf)
 #
 # setting tags for relax/freeze
 #
-nlayer = nlayer * repeat_bulk
-tag = np.ones(nlayer, int)
-
-for i in range(nlayer-1, nlayer-nrelax-1, -1):
+natoms   = len(surf.get_atomic_numbers())
+one_surf = natoms / nlayer / repeat_bulk
+tag = np.ones(natoms, int)
+for i in range(natoms-1, natoms-nrelax*one_surf-1, -1):
 	tag[i] = 0
-print "tag",tag
-print "old tag", surf.get_tags()
 
-view(surf)
-
-# surf.set_tags(tag)
-
+surf.set_tags(tag)
 #
 # making surface
 #
 c = FixAtoms(indices=[atom.index for atom in surf if atom.tag == 1])
 surf.set_constraint(c)
-surf = surf.repeat(repeat_size)
-view(surf)
 #
 # calulate
 #
@@ -160,11 +149,10 @@ e_mol = mol.get_potential_energy()
 # ------------------- surface + adsorbate -------------------
 #
 add_adsorbate(surf, mol, 1.8, position=position)
-
+#
 e_tot = surf.get_potential_energy()
-
+#
 e_ads = e_tot - (e_surf + e_mol)
-
+#
 print "Adsorption energy:", e_ads
 
-"""
