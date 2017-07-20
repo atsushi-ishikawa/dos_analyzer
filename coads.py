@@ -6,8 +6,7 @@ from ase.db import connect
 
 from vasptools import *
 
-import os,sys
-import shutil
+import os, sys, shutil
 import numpy as np
 
 from ase.visualize import view # debugging
@@ -29,9 +28,9 @@ position  = (0,0) # ontop
 # computational
 #
 xc     = "pw91"
-vacuum = 10.0
-nlayer = 3
-nrelax = 2
+vacuum = 7.5
+nlayer = 2
+nrelax = 1
 repeat_bulk = 2
 #
 # INCAR keywords
@@ -47,10 +46,8 @@ kpts   = [3, 3, 1]
 # directry things
 #
 cudir   = os.getcwd()
-# workdir = os.path.join(cudir, element, face_str, adsorbate)
-# workdir = os.path.join(cudir, element1 + "_" + face_str + "_" + adsorbate)
-workdir = os.path.join(cudir, "tmpdir")
-# shutil.rmtree(workdir)
+# workdir = os.path.join(cudir, element1, face_str, adsorbate)
+workdir = os.path.join(cudir, element1 + "_" + face_str + "_" + adsorbate)
 os.makedirs(workdir)
 os.chdir(workdir)
 #
@@ -59,8 +56,8 @@ os.chdir(workdir)
 surf_json = "surf_data.json"
 # ads_json  = "ads_data.json"
 
-# surf_json = os.path.join(cudir, surf_json)
-ads_json  = os.path.join(cudir, ads_json)
+surf_json = os.path.join(cudir, surf_json)
+# ads_json  = os.path.join(cudir, ads_json)
 
 db_surf   = connect(surf_json)
 # db_ads    = connect(ads_json)
@@ -154,6 +151,13 @@ e_ads = e_tot - (e_surf + e_mol)
 #
 print "Adsorption energy:", e_ads
 
-db_surf.write(surf, element=element1, lattice=lattice, face=face_str,
+system = element1 + face_str
+db_surf.write(surf, system=system, lattice=lattice,
 			  data={ adsorbate + ' ads': e_ads}
 			 )
+
+#
+# remove working directory
+#
+shutil.rmtree(workdir)
+

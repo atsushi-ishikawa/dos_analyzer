@@ -67,6 +67,15 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	"""
 	from ase import Atoms
  	from ase.calculators.vasp import Vasp
+	import os, shutil
+	#
+	# directry things
+	#
+	cudir   = os.getcwd()
+	workdir = os.path.join(cudir, "tmpdir")
+	os.makedirs(workdir)
+	os.chdir(workdir)
+	os.system("mkdir work_bulk")
 	#
 	# compuational condition for Vasp
 	#
@@ -97,6 +106,9 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	bulk.get_potential_energy()
 
 	a = bulk.cell[0,0] # optimized lattice constant
+
+	os.chdir(cudir)
+	shutil.rmtree(workdir)
 
 	return a
 
