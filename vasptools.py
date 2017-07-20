@@ -215,6 +215,6 @@ def sort_peaks_by_height(peaks):
 		newpeaks = np.append(newpeaks, peak)
 
 	newpeaks = np.sort(newpeaks,order="height")
+	newpeaks = newpeaks[::-1]
 	return newpeaks
-
 

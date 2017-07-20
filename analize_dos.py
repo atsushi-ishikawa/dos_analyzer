@@ -4,9 +4,10 @@ import numpy as np
 from vasptools import *
 from ase.db import connect
 
-json = "surf.json"
+json  = "tmp2.json"
 db = connect(json)
-doscar = "DOSCAR_Pd111"
+system = "Pd111"
+doscar = "DOSCAR_" + system
 sigma = 100.0
 
 #
@@ -58,6 +59,23 @@ print peaks
 #plt.plot(ene,ddos)
 #plt.show()
 
-id = db.get(element=element,face=face_str).id
-db.update(id,dos=...)
+#id = db.get(system=system).id
+#print id
+#db.update(id, peak0=peaks[0])
+
+id  = db.get(system=system).id
+obj = db[id]
+
+system   = obj.system # already know!
+lattice  = obj.lattice
+olddata = obj.data
+
+pos = [peaks[0][0],peaks[1][0]]
+tmpdata  = {"pos": pos}
+newdata = olddata + tmpdata
+
+atoms = db.get_atoms(id=id)
+
+db2 = connect("tmpout.json")
+db2.write(atoms,system=system,lattice=lattice,data=newdata)
 
