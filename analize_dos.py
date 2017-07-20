@@ -1,15 +1,13 @@
 from ase import Atoms, Atom
 from ase.calculators.vasp import VaspDos
 import numpy as np
-import matplotlib.pylab as plt
-from peakutils.plot import plot as pplot
+from vasptools import *
+from ase.db import connect
 
-from vasptools import smear_dos
-
-from tmp import *
-
+json = "surf.json"
+db = connect(json)
 doscar = "DOSCAR_Pd111"
-sigma = 10.0
+sigma = 100.0
 
 #
 # finding natom
@@ -40,18 +38,26 @@ ddos = smear_dos(ene, ddos, sigma=sigma)
 
 peaks = findpeak(ene, ddos)
 
-width = 0.1
+width = 0.05
 params = []
 for idx in peaks:
  	params.append(ene[idx])
  	params.append(ddos[idx])
 	params.append(width)
 	
-print params
 params = gaussian_fit(ene, ddos, params)
-print params
-#plt.plot(ene,sdos)
-#plt.plot(ene,pdos)
-pplot(ene,ddos,peaks)
-plt.show()
+peaks = sort_peaks_by_height(params)
+print peaks
+#
+# checking by eye
+#
+#import matplotlib.pylab as plt
+#from vasptools import fit_func
+#fit = fit_func(ene,*params)
+#plt.plot(ene,fit)
+#plt.plot(ene,ddos)
+#plt.show()
+
+id = db.get(element=element,face=face_str).id
+db.update(id,dos=...)
 

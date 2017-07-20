@@ -167,7 +167,6 @@ def sort_atoms_by_z(atoms):
 def findpeak(x, y):
 	import numpy as np
 	import peakutils 
-	import matplotlib.pylab as plt
 
 	indexes = peakutils.indexes(y, thres=0.01, min_dist=1)
 	return indexes
@@ -185,7 +184,6 @@ def fit_func(x, *params):
 def gaussian_fit(x, y, guess):
 	from scipy.optimize import curve_fit
 	import numpy as np
-	import matplotlib.pylab as plt
 
 	popt, pcov = curve_fit(fit_func, x, y, p0=guess)
 
@@ -193,7 +191,18 @@ def gaussian_fit(x, y, guess):
 
 	return popt
 
-#	plt.plot(x,y)
-#	plt.plot(x,fit,"r-")
-#	plt.show()
+def sort_peaks_by_height(peaks):
+	import numpy as np
+	"""
+	  assuming peaks are stored in [position,height,width,position,height,...]
+	"""
+	dtype = [ ("position",float), ("height",float), ("width",float) ]
+	newpeaks = np.array([],dtype=dtype)
+	for i in range(0, len(peaks), 3):
+		peak  = np.array([ (peaks[i],peaks[i+1],peaks[i+2]) ], dtype=dtype)
+		newpeaks = np.append(newpeaks, peak)
+
+	newpeaks = np.sort(newpeaks,order="height")
+	return newpeaks
+
 

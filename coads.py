@@ -1,7 +1,6 @@
 from ase import Atoms, Atom
 from ase.calculators.vasp import Vasp
 from ase.constraints import FixAtoms
-from ase.optimize import BFGS
 from ase.build import bulk, surface, add_adsorbate
 from ase.db import connect
 
@@ -13,7 +12,9 @@ import numpy as np
 
 from ase.visualize import view # debugging
 #
-# Determine lattice constant.
+# --- Determine lattice constant ---
+#
+
 #
 # basic conditions
 #
@@ -55,17 +56,14 @@ os.chdir(workdir)
 #
 # database
 #
-bulk_json = "bulk_data.json"
 surf_json = "surf_data.json"
-ads_json  = "ads_data.json"
+# ads_json  = "ads_data.json"
 
-bulk_json = os.path.join(cudir, bulk_json)
-surf_json = os.path.join(cudir, surf_json)
+# surf_json = os.path.join(cudir, surf_json)
 ads_json  = os.path.join(cudir, ads_json)
 
-db_bulk   = connect(bulk_json)
 db_surf   = connect(surf_json)
-db_ads    = connect(ads_json)
+# db_ads    = connect(ads_json)
 #
 # xc set
 #
@@ -156,3 +154,6 @@ e_ads = e_tot - (e_surf + e_mol)
 #
 print "Adsorption energy:", e_ads
 
+db_surf.write(surf, element=element1, lattice=lattice, face=face_str,
+			  data={ adsorbate + ' ads': e_ads}
+			 )
