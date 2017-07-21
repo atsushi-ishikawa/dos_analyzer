@@ -2,6 +2,7 @@ from ase import Atoms, Atom
 from ase.calculators.vasp import Vasp
 from ase.constraints import FixAtoms
 from ase.build import bulk, surface, add_adsorbate
+# from ase.visualize import view # debug
 from ase.db import connect
 
 from vasptools import *
@@ -20,10 +21,23 @@ from ase.visualize import view # debugging
 argvs     = sys.argv
 element1  = argvs[1]
 
+if len(argvs) == 4:
+	#
+	# in case of alloys
+	#
+	alloy = True
+	element2 = argvs[2]
+	comp1    = int(argvs[3])
+	comp2    = 100 - comp1
+	element  = element1 + "{:.1f}".format(comp1/100.0) + element2 + "{:.1f}".format(comp2/100.0)
+else:
+	alloy = False
+	element  = element1
+
 face      = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
 adsorbate = "CO"
 ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
-position  = (0,0) # ontop
+position  = (0,0)  ; position_str = "ontop" 
 #
 # computational
 #
@@ -35,19 +49,18 @@ repeat_bulk = 2
 #
 # INCAR keywords
 #
-prec   = "low"
-encut  =  350.0
+prec   = "normal"
+encut  =  400.0
 potim  =  0.1
-nsw    =  0
-ediff  =  1.0e-2
+nsw    =  100
+ediff  =  1.0e-4
 ediffg = -0.05
 kpts   = [3, 3, 1]
 #
 # directry things
 #
 cudir   = os.getcwd()
-# workdir = os.path.join(cudir, element1, face_str, adsorbate)
-workdir = os.path.join(cudir, element1 + "_" + face_str + "_" + adsorbate)
+workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)
 os.makedirs(workdir)
 os.chdir(workdir)
 #
@@ -76,7 +89,11 @@ else:
 #
 # ------------------------ bulk ---------------------------
 #
-bulk = make_bulk(element1, repeat=repeat_bulk)
+if alloy:
+	bulk = make_bulk(element1, element2=element2, comp1=comp1, repeat=repeat_bulk)
+else:
+	bulk = make_bulk(element, repeat=repeat_bulk)
+
 lattice, a0 = lattice_info_guess(bulk)
 a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
 #
@@ -151,9 +168,9 @@ e_ads = e_tot - (e_surf + e_mol)
 #
 print "Adsorption energy:", e_ads
 
-system = element1 + face_str
+system = element + "_" + face_str
 db_surf.write(surf, system=system, lattice=lattice,
-			  data={ adsorbate + ' ads': e_ads}
+			  data={ adsorbate + "-" + position_str: e_ads}
 			 )
 
 #

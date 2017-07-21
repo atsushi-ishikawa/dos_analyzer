@@ -5,7 +5,7 @@ import numpy as np
 from vasptools import *
 from ase.db import connect
 
-json  = "tmp2.json"
+json  = "surf_data.json"
 db = connect(json)
 #system = "Pd111"
 argvs = sys.argv
