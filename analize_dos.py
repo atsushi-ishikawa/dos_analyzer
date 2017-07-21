@@ -1,12 +1,16 @@
 from ase import Atoms, Atom
 from ase.calculators.vasp import VaspDos
+import sys
 import numpy as np
 from vasptools import *
 from ase.db import connect
 
 json  = "tmp2.json"
 db = connect(json)
-system = "Pd111"
+#system = "Pd111"
+argvs = sys.argv
+system  = argvs[1]
+orbital = argvs[2]
 doscar = "DOSCAR_" + system
 sigma = 100.0
 
@@ -23,32 +27,24 @@ dos = VaspDos(doscar=doscar)
 ene  = dos.energy
 tdos = dos.dos
 
-sdos = np.zeros(len(tdos))
 pdos = np.zeros(len(tdos))
-ddos = np.zeros(len(tdos))
 
 for i in range(0,natom):
-	sdos = sdos + dos.site_dos(i, "s")
-	pdos = pdos + dos.site_dos(i, "p")
-	ddos = ddos + dos.site_dos(i, "d")
+	pdos = pdos + dos.site_dos(i, orbital)
 
-tdos = smear_dos(ene, tdos, sigma=sigma)
-sdos = smear_dos(ene, sdos, sigma=sigma)
 pdos = smear_dos(ene, pdos, sigma=sigma)
-ddos = smear_dos(ene, ddos, sigma=sigma)
 
-peaks = findpeak(ene, ddos)
+peaks = findpeak(ene, pdos)
 
 width = 0.05
 params = []
 for idx in peaks:
  	params.append(ene[idx])
- 	params.append(ddos[idx])
+ 	params.append(pdos[idx])
 	params.append(width)
 	
-params = gaussian_fit(ene, ddos, params)
+params = gaussian_fit(ene, pdos, params)
 peaks = sort_peaks_by_height(params)
-print peaks
 #
 # checking by eye
 #
@@ -56,26 +52,34 @@ print peaks
 #from vasptools import fit_func
 #fit = fit_func(ene,*params)
 #plt.plot(ene,fit)
-#plt.plot(ene,ddos)
+#plt.plot(ene,pdos)
 #plt.show()
 
-#id = db.get(system=system).id
-#print id
-#db.update(id, peak0=peaks[0])
-
+#
+# adding to database
+#
 id  = db.get(system=system).id
 obj = db[id]
 
 system   = obj.system # already know!
 lattice  = obj.lattice
-olddata = obj.data
+data     = obj.data
 
-pos = [peaks[0][0],peaks[1][0]]
-tmpdata  = {"pos": pos}
-newdata = olddata + tmpdata
+numpeaks = 5
+position = []
+height   = []
+width    = []
+for i in range(numpeaks):
+	position.append(peaks[i][0])
+	height.append(peaks[i][1])
+	width.append(peaks[i][2])
+
+data.update({ orbital + "-dos " + "position" : position})
+data.update({ orbital + "-dos " + "height"   : height})
+data.update({ orbital + "-dos " + "width"    : width})
 
 atoms = db.get_atoms(id=id)
 
 db2 = connect("tmpout.json")
-db2.write(atoms,system=system,lattice=lattice,data=newdata)
+db2.write(atoms,system=system,lattice=lattice,data=data)
 
