@@ -2,15 +2,14 @@ from ase import Atoms, Atom
 from ase.calculators.vasp import Vasp
 from ase.constraints import FixAtoms
 from ase.build import bulk, surface, add_adsorbate
-# from ase.visualize import view # debug
 from ase.db import connect
+from ase.visualize import view # debugging
 
 from vasptools import *
 
 import os, sys, shutil
 import numpy as np
 
-from ase.visualize import view # debugging
 #
 # --- Determine lattice constant ---
 #
