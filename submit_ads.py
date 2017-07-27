@@ -1,8 +1,5 @@
 import os,sys
-#
-# lattice constants takne from 
-# http://periodictable.com/Properties/A/LatticeConstants.html
-#
+
 dict = {
   "Rh" : {"lattice" : "fcc" },
   "Pd" : {"lattice" : "fcc" }, 

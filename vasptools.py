@@ -24,7 +24,7 @@ def lattice_info_guess(bulk):
 
 	return lattice, a0
 
-def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=2):
+def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=1):
 	from ase import Atoms
 	from ase.build import bulk
 	import numpy as np
@@ -82,8 +82,8 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	prec   = "normal"
 	potim  = 0.1
 	ediff  = 1.0e-4
-	ediffg = -0.01
-	kpts = [2, 2, 2]
+ 	ediffg = -0.01
+	kpts = [3, 3, 3]
 
 	xc = xc.lower()
 	if xc == "pbe" or xc == "pbesol" or xc == "rpbe":
@@ -98,7 +98,7 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
  	calc = Vasp(	prec=prec, xc=xc, pp=pp, ispin=2,
 			ismear=1, sigma=0.2,
  			isif=3,
- 			ibrion=2, nsw=100, potim=potim, ediffg=ediffg,
+ 			ibrion=2, nsw=10, potim=potim, ediffg=ediffg,
      			kpts=kpts
  		)
 
@@ -108,7 +108,7 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	a = bulk.cell[0,0] # optimized lattice constant
 
 	os.chdir(cudir)
-	shutil.rmtree(workdir)
+ 	shutil.rmtree(workdir)
 
 	return a
 
