@@ -7,12 +7,20 @@ from ase.db import connect
 
 json  = "surf_data.json"
 db = connect(json)
-#system = "Pd111"
+
 argvs = sys.argv
+#system = "Pd111"
 system  = argvs[1]
-orbital = argvs[2]
 doscar = "DOSCAR_" + system
-sigma = 100.0
+sigma = 5.0 # broaden when decreased sigma
+
+orbitals = []
+norbs = len(argvs) - 2 # number of orbitals
+#
+# get orbital list
+#
+for i in range(0, norbs):
+	orbitals.append(str(argvs[i+2]))
 
 #
 # finding natom
@@ -27,24 +35,31 @@ dos = VaspDos(doscar=doscar)
 ene  = dos.energy
 tdos = dos.dos
 
-pdos = np.zeros(len(tdos))
+id  = db.get(system=system).id
+obj = db[id]
 
-for i in range(0,natom):
-	pdos = pdos + dos.site_dos(i, orbital)
+system   = obj.system # already know!
+lattice  = obj.lattice
+data     = obj.data
 
-pdos = smear_dos(ene, pdos, sigma=sigma)
+for orbital in orbitals:
+	pdos = np.zeros(len(tdos))
+	for i in range(0,natom):
+		pdos = pdos + dos.site_dos(i, orbital)
 
-peaks = findpeak(ene, pdos)
+	pdos = smear_dos(ene, pdos, sigma=sigma)
 
-width = 0.05
-params = []
-for idx in peaks:
- 	params.append(ene[idx])
- 	params.append(pdos[idx])
-	params.append(width)
+	peaks = findpeak(ene, pdos)
+
+	width = 0.05
+	params = []
+	for idx in peaks:
+ 		params.append(ene[idx])
+ 		params.append(pdos[idx])
+		params.append(width)
 	
-params = gaussian_fit(ene, pdos, params)
-peaks = sort_peaks_by_height(params)
+	params = gaussian_fit(ene, pdos, params)
+	peaks = sort_peaks_by_height(params)
 #
 # checking by eye
 #
@@ -54,31 +69,26 @@ peaks = sort_peaks_by_height(params)
 #plt.plot(ene,fit)
 #plt.plot(ene,pdos)
 #plt.show()
-
 #
 # adding to database
 #
-id  = db.get(system=system).id
-obj = db[id]
 
-system   = obj.system # already know!
-lattice  = obj.lattice
-data     = obj.data
+	numpeaks = 5
+	position = []
+	height   = []
+	width    = []
 
-numpeaks = 5
-position = []
-height   = []
-width    = []
-for i in range(numpeaks):
-	position.append(peaks[i][0])
-	height.append(peaks[i][1])
-	width.append(peaks[i][2])
+	for i in range(numpeaks):
+		position.append(peaks[i][0])
+		height.append(peaks[i][1])
+		width.append(peaks[i][2])
 
-data.update({ orbital + "-dos " + "position" : position})
-data.update({ orbital + "-dos " + "height"   : height})
-data.update({ orbital + "-dos " + "width"    : width})
+	data.update({ orbital + "-dos " + "position" : position})
+	data.update({ orbital + "-dos " + "position" : position})
+	data.update({ orbital + "-dos " + "height"   : height})
+	data.update({ orbital + "-dos " + "width"    : width})
 
-atoms = db.get_atoms(id=id)
+	atoms = db.get_atoms(id=id)
 
 db2 = connect("tmpout.json")
 db2.write(atoms,system=system,lattice=lattice,data=data)
