@@ -37,17 +37,18 @@ else:
 	alloy = False
 	element  = element1
 
-face      = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
-adsorbate = "CH"
-ads_geom  = [(0, 0, 0), (0, 0, 1.0)]
+face      = (1,0,0) ; face_str = ",".join( map(str,face) ).replace(",","")
+adsorbate = "CH3"
+# ads_geom  = [(0, 0, 0), (-0.2, 0, 1.2), (0.2, 0, 1.2)]
+ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
 position  = (0,0)  ; position_str = "ontop" 
 #
 # computational
 #
 xc     = "pw91"
 vacuum = 7.5
-nlayer = 5
-nrelax = 3
+nlayer = 4
+nrelax = 2
 repeat_bulk = 1
 #
 # INCAR keywords
@@ -59,6 +60,7 @@ nsw    =  100
 ediff  =  1.0e-4
 ediffg = -0.05
 kpts   = [3, 3, 1]
+ispin  = 2
 #
 # directry things
 #
@@ -129,7 +131,7 @@ surf.set_constraint(c)
 #
 # calulate
 #
-calc_surf = Vasp(	prec=prec, xc=xc, pp=pp, ispin=1, algo="VeryFast",
+calc_surf = Vasp(	prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
 			encut=encut, ismear=1, sigma=0.2, istart=0,
 			ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
 		    	kpts=kpts, npar=12, nsim=12, lreal=True, lorbit=10
@@ -140,7 +142,7 @@ e_surf = surf.get_potential_energy()
 #
 # copy DOSCAR
 #
-dosfile  = "DOSCAR_" + element + " " + face_str
+dosfile  = "DOSCAR_" + element + "_" + face_str
 dosfile  = os.path.join(cudir, dosfile)
 os.system("cp DOSCAR %s" % dosfile)
 efermi = calc_surf.read_fermi()
@@ -154,7 +156,7 @@ print "fermi energy:",efermi
 cell = [10.0, 10.0, 10.0]
 mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 
-calc_mol = Vasp(prec=prec, xc=xc, pp=pp, ispin=1, algo="VeryFast",
+calc_mol = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
 		encut=encut, ismear=0, istart=0,
 		ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
 		kpts=[1,1,1], npar=12, nsim=12, lreal=True, lorbit=10
@@ -182,4 +184,5 @@ db_surf.write(surf, system=system, lattice=lattice,
 # remove working directory
 #
 
-# shutil.rmtree(workdir)
+shutil.rmtree(workdir)
+
