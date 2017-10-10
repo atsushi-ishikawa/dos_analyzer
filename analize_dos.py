@@ -4,15 +4,21 @@ import sys
 import numpy as np
 from vasptools import *
 from ase.db import connect
-
+import matplotlib.pylab as plt
+import seaborn as sb
+from vasptools import fit_func
+#
+# Usage:
+#  python analyze.dos Cu_111 s p d
+#
 json  = "surf_data.json"
 db = connect(json)
 
 argvs = sys.argv
-#system = "Pd111"
+# system = "Pd111"
 system  = argvs[1]
 doscar = "DOSCAR_" + system
-sigma = 5.0 # broaden when decreased sigma
+sigma = 4.0 # smaller the broader
 
 orbitals = []
 norbs = len(argvs) - 2 # number of orbitals
@@ -36,6 +42,7 @@ ene  = dos.energy
 tdos = dos.dos
 
 id  = db.get(system=system).id
+
 obj = db[id]
 
 system   = obj.system # already know!
@@ -60,20 +67,18 @@ for orbital in orbitals:
 	
 	params = gaussian_fit(ene, pdos, params)
 	peaks = sort_peaks_by_height(params)
-#
-# checking by eye
-#
-#import matplotlib.pylab as plt
-#from vasptools import fit_func
-#fit = fit_func(ene,*params)
-#plt.plot(ene,fit)
-#plt.plot(ene,pdos)
-#plt.show()
-#
-# adding to database
-#
-
-	numpeaks = 5
+	#
+	# if you want to check by eye
+	#
+	fit = fit_func(ene,*params)
+	sb.set(context='notebook', style='darkgrid', palette='deep', font='sans-serif', font_scale=1, color_codes=False, rc=None)
+ 	plt.plot(ene,fit)
+ 	plt.plot(ene,pdos)
+ 	plt.show()
+	#
+	# adding to database
+	#
+	numpeaks = 3
 	position = []
 	height   = []
 	width    = []
@@ -84,12 +89,11 @@ for orbital in orbitals:
 		width.append(peaks[i][2])
 
 	data.update({ orbital + "-dos " + "position" : position})
-	data.update({ orbital + "-dos " + "position" : position})
 	data.update({ orbital + "-dos " + "height"   : height})
 	data.update({ orbital + "-dos " + "width"    : width})
 
 	atoms = db.get_atoms(id=id)
 
 db2 = connect("tmpout.json")
-db2.write(atoms,system=system,lattice=lattice,data=data)
+db2.write(atoms, system=system, lattice=lattice, data=data)
 
