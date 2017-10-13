@@ -37,19 +37,21 @@ else:
 	alloy = False
 	element  = element1
 
-face      = (1,0,0) ; face_str = ",".join( map(str,face) ).replace(",","")
-adsorbate = "CH3"
-# ads_geom  = [(0, 0, 0), (-0.2, 0, 1.2), (0.2, 0, 1.2)]
-ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
+face      = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
+adsorbate = "CO"
+ads_geom  = [(0, 0, 0), (0, 0, 1.2)] # CO
+# adsorbate = "CH3"
+# ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
 position  = (0,0)  ; position_str = "ontop" 
+
 #
 # computational
 #
 xc     = "pw91"
-vacuum = 7.5
-nlayer = 4
+vacuum = 10.0
+nlayer = 3
 nrelax = 2
-repeat_bulk = 1
+repeat_bulk = 2
 #
 # INCAR keywords
 #
@@ -58,9 +60,9 @@ encut  =  400.0
 potim  =  0.1
 nsw    =  100
 ediff  =  1.0e-4
-ediffg = -0.05
+ediffg = -0.03
 kpts   = [3, 3, 1]
-ispin  = 2
+ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 #
 # directry things
 #
@@ -71,7 +73,8 @@ os.chdir(workdir)
 #
 # database
 #
-surf_json = "surf_data.json"
+# surf_json = "surf_data.json"
+surf_json = "surf_data_alloy.json"
 # ads_json  = "ads_data.json"
 
 surf_json = os.path.join(cudir, surf_json)
@@ -101,6 +104,7 @@ else:
 
 lattice, a0 = lattice_info_guess(bulk)
 a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
+#a = 4.0 * repeat_bulk
 #
 # ------------------------ surface ------------------------
 #
@@ -111,6 +115,7 @@ a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
 cell = [a, a, a]
 bulk.set_cell(cell)
 surf = surface(bulk, face, nlayer, vacuum=vacuum)
+surf.translate([0,0,-vacuum])
 
 surf = sort_atoms_by_z(surf)
 #
