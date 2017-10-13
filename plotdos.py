@@ -1,30 +1,50 @@
-def gaussian(x,x0,a,b):
-	"""
-	  y = a*exp(-b*(x-x0)**2)
-	"""
-	import numpy as np
-	x = np.array(x)
-	y = np.exp( -b*(x-x0)**2 )
-	y = a*y
-	return y
+from ase import Atoms, Atom
+from ase.calculators.vasp import VaspDos
+from vasptools import smear_dos
+import sys
+import numpy as np
+import matplotlib.pylab as plt
+import seaborn as sb
 
-def smear_dos(dos, sigma=5.0):
-	"""
-	  get smeared dos
-	"""
-	import numpy as np
+argvs = sys.argv
+system  = argvs[1]
+#system : "Pd111"
 
-	x = dos.energy
-	y = dos.dos
+if len(argvs) == 3:
+	orbital = argvs[2]
+	draw_pdos = True
+else:
+	draw_pdos = False
 
-	len = len(x)
-	y2  = np.zeros(len)
+doscar = "DOSCAR_" + system
+sigma = 10.0
 
-	for i,j in enumerate(x):
-		x0 = x[i]
-		a = y[i]
-		ytmp = gaussian(x, x0, a=a, b=5.0)
-		y2 = y2 + ytmp
+#
+# finding natom
+#
+f = open(doscar, "r")
+line1 = f.readline()
+natom = int( line1.split()[0] )
+f.close()
 
-	return y2
+dos = VaspDos(doscar=doscar)
 
+ene  = dos.energy
+tdos = dos.dos
+tdos = smear_dos(ene, tdos, sigma=sigma)
+
+if draw_pdos:
+	pdos = np.zeros(len(tdos))
+	for i in range(0,natom):
+		pdos = pdos + dos.site_dos(i, orbital)
+	pdos = smear_dos(ene, pdos, sigma=sigma)
+
+sb.set(context='notebook', style='darkgrid', palette='deep', font='sans-serif', font_scale=1, color_codes=False, rc=None)
+
+#plt.plot(ene, tdos,"r-",linewidth=2)
+plt.plot(ene, tdos)
+filename = "DOS_" + system + ".png"
+plt.ylabel("Density of state (-)")
+plt.xlabel("Energy (eV)")
+plt.savefig(filename)
+#plt.show()
