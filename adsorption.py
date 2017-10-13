@@ -47,9 +47,9 @@ position  = (0,0)  ; position_str = "ontop"
 #
 # computational
 #
-xc     = "pw91"
+xc     = "pbe"
 vacuum = 10.0
-nlayer = 3
+nlayer = 4
 nrelax = 2
 repeat_bulk = 2
 #
@@ -61,7 +61,7 @@ potim  =  0.1
 nsw    =  100
 ediff  =  1.0e-4
 ediffg = -0.03
-kpts   = [3, 3, 1]
+kpts   = [5, 5, 1]
 ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 #
 # directry things

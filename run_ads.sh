@@ -7,5 +7,5 @@
 
 element=$1
 
-python coads.py $element 1> std_${element}_ads.out 2> err_${element}_ads.out
+python adsorption.py $element 1> std_${element}_ads.out 2> err_${element}_ads.out
 
