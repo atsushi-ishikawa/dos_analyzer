@@ -48,8 +48,8 @@ position  = (0,0)  ; position_str = "ontop"
 # computational
 #
 xc     = "pbe"
-vacuum = 10.0
-nlayer = 4
+vacuum = 8.0
+nlayer = 3
 nrelax = 2
 repeat_bulk = 2
 #
@@ -61,7 +61,7 @@ potim  =  0.1
 nsw    =  100
 ediff  =  1.0e-4
 ediffg = -0.03
-kpts   = [5, 5, 1]
+kpts   = [3, 3, 1]
 ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 #
 # directry things
@@ -104,7 +104,8 @@ else:
 
 lattice, a0 = lattice_info_guess(bulk)
 a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
-#a = 4.0 * repeat_bulk
+
+# a = 4.0 * repeat_bulk
 #
 # ------------------------ surface ------------------------
 #
@@ -133,9 +134,10 @@ surf.set_tags(tag)
 #
 c = FixAtoms(indices=[atom.index for atom in surf if atom.tag == 1])
 surf.set_constraint(c)
-#
-# calulate
-#
+
+# ==================================================
+#                calulation starts here
+# ==================================================
 calc_surf = Vasp(	prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
 			encut=encut, ismear=1, sigma=0.2, istart=0,
 			ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
