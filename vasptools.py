@@ -28,6 +28,7 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
 	from ase import Atoms
 	from ase.build import bulk
 	import numpy as np
+	from ase.visualize import view
 	#
 	# to fractional
 	#
@@ -53,7 +54,7 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
 		#
 		list = bulk.get_chemical_symbols()
 		#
-		replace_list = np.random.choice(len(list), size=natom2)
+		replace_list = np.random.choice(len(list), size=natom2, replace=False)
 		for i in replace_list:
 			list[i] = element2
 

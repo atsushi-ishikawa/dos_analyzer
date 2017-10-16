@@ -4,14 +4,15 @@ import sys
 import numpy as np
 from vasptools import *
 from ase.db import connect
-import matplotlib.pylab as plt
-import seaborn as sb
+# import matplotlib.pylab as plt
+# import seaborn as sb
 from vasptools import fit_func
 #
 # Usage:
 #  python analyze.dos Cu_111 s p d
 #
-json  = "surf_data.json"
+#json  = "surf_data.json"
+json  = "surf_data_alloy.json"
 db = connect(json)
 
 argvs = sys.argv
@@ -71,14 +72,14 @@ for orbital in orbitals:
 	# if you want to check by eye
 	#
 	fit = fit_func(ene,*params)
-	sb.set(context='notebook', style='darkgrid', palette='deep', font='sans-serif', font_scale=1, color_codes=False, rc=None)
- 	plt.plot(ene,fit)
- 	plt.plot(ene,pdos)
- 	plt.show()
+#	sb.set(context='notebook', style='darkgrid', palette='deep', font='sans-serif', font_scale=1, color_codes=False, rc=None)
+# 	plt.plot(ene,fit)
+# 	plt.plot(ene,pdos)
+# 	plt.show()
 	#
 	# adding to database
 	#
-	numpeaks = 3
+	numpeaks = 2
 	position = []
 	height   = []
 	width    = []

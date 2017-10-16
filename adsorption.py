@@ -143,7 +143,6 @@ calc_surf = Vasp(	prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
        		    )
 surf.set_calculator(calc_surf)
 e_surf = surf.get_potential_energy()
-
 #
 # copy DOSCAR
 #
