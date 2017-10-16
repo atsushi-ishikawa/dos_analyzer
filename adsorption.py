@@ -56,12 +56,12 @@ repeat_bulk = 2
 # INCAR keywords
 #
 prec   = "normal"
-encut  =  400.0
+encut  =  350.0
 potim  =  0.1
 nsw    =  100
 ediff  =  1.0e-4
 ediffg = -0.03
-kpts   = [3, 3, 1]
+kpts   = [2, 2, 1]
 ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 #
 # directry things
@@ -104,8 +104,18 @@ else:
 
 lattice, a0 = lattice_info_guess(bulk)
 a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
-
 # a = 4.0 * repeat_bulk
+# a = 7.80311
+print "optimized lattice constant-before",a
+a = a/repeat_bulk
+print "optimized lattice constant-after",a
+
+# make bulk again
+if alloy:
+	bulk = make_bulk(element1, element2=element2, comp1=comp1, a0=a, repeat=repeat_bulk)
+else:
+	bulk = make_bulk(element, a0=a, repeat=repeat_bulk)
+
 #
 # ------------------------ surface ------------------------
 #
@@ -113,8 +123,8 @@ a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
 #
 # surface construction
 #
-cell = [a, a, a]
-bulk.set_cell(cell)
+#cell = [a, a, a]
+#bulk.set_cell(cell)
 surf = surface(bulk, face, nlayer, vacuum=vacuum)
 surf.translate([0,0,-vacuum])
 
