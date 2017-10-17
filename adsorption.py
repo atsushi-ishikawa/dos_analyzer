@@ -102,19 +102,19 @@ if alloy:
 else:
 	bulk = make_bulk(element, repeat=repeat_bulk)
 
+bulk_copy = bulk
+
 lattice, a0 = lattice_info_guess(bulk)
-a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
-# a = 4.0 * repeat_bulk
+# a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
+a = 4.0 * repeat_bulk
 # a = 7.80311
-print "optimized lattice constant-before",a
 a = a/repeat_bulk
-print "optimized lattice constant-after",a
 
 # make bulk again
-if alloy:
-	bulk = make_bulk(element1, element2=element2, comp1=comp1, a0=a, repeat=repeat_bulk)
-else:
-	bulk = make_bulk(element, a0=a, repeat=repeat_bulk)
+#if alloy:
+#	bulk = make_bulk(element1, element2=element2, comp1=comp1, a0=a, repeat=repeat_bulk)
+#else:
+#	bulk = make_bulk(element, a0=a, repeat=repeat_bulk)
 
 #
 # ------------------------ surface ------------------------
@@ -123,8 +123,9 @@ else:
 #
 # surface construction
 #
-#cell = [a, a, a]
-#bulk.set_cell(cell)
+bulk = bulk_copy
+cell = [a, a, a]
+bulk.set_cell(cell)
 surf = surface(bulk, face, nlayer, vacuum=vacuum)
 surf.translate([0,0,-vacuum])
 
@@ -201,4 +202,3 @@ db_surf.write(surf, system=system, lattice=lattice,
 #
 
 shutil.rmtree(workdir)
-
