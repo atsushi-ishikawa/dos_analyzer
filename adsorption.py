@@ -1,6 +1,6 @@
 #
-# usage: [this_script] Pt (single metal)
-#        [this_script] Pt Pd 50 (alloy)
+# usage: python [this_script] Pt (single metal)
+#        python [this_script] Pt Pd 50 (alloy)
 #
 from ase import Atoms, Atom
 from ase.calculators.vasp import Vasp
@@ -55,7 +55,7 @@ repeat_bulk = 2
 #
 # INCAR keywords
 #
-prec   = "normal"
+prec   = "low"
 encut  =  350.0
 potim  =  0.1
 nsw    =  100
@@ -71,7 +71,7 @@ workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)
 os.makedirs(workdir)
 os.chdir(workdir)
 #
-# database
+# database to save data
 #
 # surf_json = "surf_data.json"
 surf_json = "surf_data_alloy.json"
@@ -105,10 +105,11 @@ else:
 bulk_copy = bulk
 
 lattice, a0 = lattice_info_guess(bulk)
-# a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
-a = 4.0 * repeat_bulk
+a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
+
+# a = 4.0 * repeat_bulk
 # a = 7.80311
-a = a/repeat_bulk
+# a = a/repeat_bulk
 
 # make bulk again
 #if alloy:
@@ -123,11 +124,15 @@ a = a/repeat_bulk
 #
 # surface construction
 #
-bulk = bulk_copy
-cell = [a, a, a]
+
+cell = bulk.get_cell()
+#print "cell,before",cell
+#cell = cell/repeat_bulk
+#print "cell,after", cell
+
 bulk.set_cell(cell)
 surf = surface(bulk, face, nlayer, vacuum=vacuum)
-surf.translate([0,0,-vacuum])
+surf.translate([0, 0, -vacuum])
 
 surf = sort_atoms_by_z(surf)
 #
@@ -145,15 +150,15 @@ surf.set_tags(tag)
 #
 c = FixAtoms(indices=[atom.index for atom in surf if atom.tag == 1])
 surf.set_constraint(c)
-
+#
 # ==================================================
 #                calulation starts here
 # ==================================================
-calc_surf = Vasp(	prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
-			encut=encut, ismear=1, sigma=0.2, istart=0,
-			ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
-		    	kpts=kpts, npar=12, nsim=12, lreal=True, lorbit=10
-       		    )
+#
+calc_surf = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
+		 encut=encut, ismear=1, sigma=0.2, istart=0,
+		 ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
+		 kpts=kpts, npar=12, nsim=12, lreal=True, lorbit=10 )
 surf.set_calculator(calc_surf)
 e_surf = surf.get_potential_energy()
 #
@@ -194,12 +199,9 @@ print "Adsorption energy:", e_ads
 
 system = element + "_" + face_str
 db_surf.write(surf, system=system, lattice=lattice,
-			  data={ adsorbate + "-" + position_str: e_ads}
-			 )
-
+			  data={ adsorbate + "-" + position_str: e_ads} )
 #
 # remove working directory
 #
 
-shutil.rmtree(workdir)
-
+# shutil.rmtree(workdir)
