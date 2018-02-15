@@ -40,28 +40,29 @@ else:
 face      = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
 adsorbate = "CO"
 ads_geom  = [(0, 0, 0), (0, 0, 1.2)] # CO
+position_str = "ontop" 
+
 # adsorbate = "CH3"
 # ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
-position  = (0,0)  ; position_str = "ontop" 
 
 #
 # computational
 #
-xc     = "pbe"
-vacuum = 8.0
+xc     = "rpbe"
+vacuum = 10.0
 nlayer = 3
 nrelax = 2
 repeat_bulk = 2
 #
 # INCAR keywords
 #
-prec   = "low"
-encut  =  350.0
-potim  =  0.1
-nsw    =  100
-ediff  =  1.0e-4
-ediffg = -0.03
-kpts   = [2, 2, 1]
+prec   = "normal"
+encut  =  400.0
+potim  =  0.05
+nsw    =  200
+ediff  =  1.0e-5
+ediffg = -0.01
+kpts   = [15, 15, 1]
 ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 #
 # directry things
@@ -105,10 +106,10 @@ else:
 bulk_copy = bulk
 
 lattice, a0 = lattice_info_guess(bulk)
-a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
+# a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
 
 # a = 4.0 * repeat_bulk
-# a = 7.80311
+a = 7.80311
 # a = a/repeat_bulk
 
 # make bulk again
@@ -181,15 +182,17 @@ mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 calc_mol = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
 		encut=encut, ismear=0, istart=0,
 		ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
-		kpts=[1,1,1], npar=12, nsim=12, lreal=True, lorbit=10
-       		)
+		kpts=[1,1,1], npar=12, nsim=12, lreal=True, lorbit=10 )
 
 mol.set_calculator(calc_mol)
 e_mol = mol.get_potential_energy()
 #
 # ------------------- surface + adsorbate -------------------
 #
-add_adsorbate(surf, mol, 1.8, position=position)
+if position_str == "ontop":
+	position = (a*2.0/11.0, a*1.0/11.0)
+
+add_adsorbate(surf, mol, 1.9, position=position)
 #
 e_tot = surf.get_potential_energy()
 #
