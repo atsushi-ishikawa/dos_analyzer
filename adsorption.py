@@ -50,14 +50,14 @@ position_str = "ontop"
 #
 xc     = "rpbe"
 vacuum = 10.0
-nlayer = 3
+nlayer = 2
 nrelax = 2
 repeat_bulk = 2
 #
 # INCAR keywords
 #
 prec   = "normal"
-encut  =  400.0
+encut  =  500.0
 potim  =  0.10
 nsw    =  200
 ediff  =  1.0e-6
@@ -187,7 +187,8 @@ e_mol = mol.get_potential_energy()
 # ------------------- surface + adsorbate -------------------
 #
 if position_str == "ontop":
-	position = (a*2.0/11.0, a*1.0/11.0)
+	# position = (a*2.0/11.0, a*1.0/11.0) # when nlayer = 2
+	position = (0,0) # when nlayer = 1
 
 add_adsorbate(surf, mol, 1.9, position=position)
 #
@@ -204,4 +205,4 @@ db_surf.write(surf, system=system, lattice=lattice,
 # remove working directory
 #
 
-# shutil.rmtree(workdir)
+shutil.rmtree(workdir)
