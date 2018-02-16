@@ -58,11 +58,12 @@ repeat_bulk = 2
 #
 prec   = "normal"
 encut  =  400.0
-potim  =  0.05
+potim  =  0.10
 nsw    =  200
-ediff  =  1.0e-5
-ediffg = -0.01
-kpts   = [15, 15, 1]
+ediff  =  1.0e-6
+ediffg = -0.03
+kpts   = [3, 3, 1]
+gamma  = True
 ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 #
 # directry things
@@ -106,11 +107,7 @@ else:
 bulk_copy = bulk
 
 lattice, a0 = lattice_info_guess(bulk)
-# a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
-
-# a = 4.0 * repeat_bulk
-a = 7.80311
-# a = a/repeat_bulk
+a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
 
 # make bulk again
 #if alloy:
@@ -159,7 +156,7 @@ surf.set_constraint(c)
 calc_surf = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
 		 encut=encut, ismear=1, sigma=0.2, istart=0,
 		 ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
-		 kpts=kpts, npar=12, nsim=12, lreal=True, lorbit=10 )
+		 kpts=kpts, gamma=gamma, npar=12, nsim=12, lreal=True, lorbit=10 )
 surf.set_calculator(calc_surf)
 e_surf = surf.get_potential_energy()
 #
