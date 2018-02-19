@@ -57,19 +57,22 @@ repeat_bulk = 2
 # INCAR keywords
 #
 prec   = "normal"
-encut  =  500.0
+encut  =  400.0
+nelmin =  5
 potim  =  0.10
-nsw    =  200
-ediff  =  1.0e-6
-ediffg = -0.03
+nsw    =  50
+ediff  =  1.0e-4
+ediffg = -0.10 # -0.03
 kpts   = [3, 3, 1]
 gamma  = True
+isym   = 0
 ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 #
 # directry things
 #
 cudir   = os.getcwd()
-workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)
+#workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)
+workdir = os.path.join("/tmp/" + element + "_" + face_str + "_" + adsorbate)
 os.makedirs(workdir)
 os.chdir(workdir)
 #
@@ -96,6 +99,7 @@ elif xc == "lda":
 	pp = "lda"
 else:
 	print("xc error")
+
 #
 # ------------------------ bulk ---------------------------
 #
@@ -154,7 +158,7 @@ surf.set_constraint(c)
 # ==================================================
 #
 calc_surf = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
-		 encut=encut, ismear=1, sigma=0.2, istart=0,
+		 encut=encut, ismear=1, sigma=0.2, istart=0, nelmin=nelmin, isym=isym,
 		 ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
 		 kpts=kpts, gamma=gamma, npar=12, nsim=12, lreal=True, lorbit=10 )
 surf.set_calculator(calc_surf)
@@ -176,10 +180,10 @@ print "fermi energy:",efermi
 cell = [10.0, 10.0, 10.0]
 mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 
-calc_mol = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
-		encut=encut, ismear=0, istart=0,
-		ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
-		kpts=[1,1,1], npar=12, nsim=12, lreal=True, lorbit=10 )
+calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
+		 encut=encut, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, isym=isym,
+		 ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
+		 kpts=[1,1,1], gamma=gamma, npar=12, nsim=12, lreal=True, lorbit=10 )
 
 mol.set_calculator(calc_mol)
 e_mol = mol.get_potential_energy()
@@ -190,7 +194,7 @@ if position_str == "ontop":
 	# position = (a*2.0/11.0, a*1.0/11.0) # when nlayer = 2
 	position = (0,0) # when nlayer = 1
 
-add_adsorbate(surf, mol, 1.9, position=position)
+add_adsorbate(surf, mol, 1.8, position=position)
 #
 e_tot = surf.get_potential_energy()
 #
