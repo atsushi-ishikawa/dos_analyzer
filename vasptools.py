@@ -96,7 +96,7 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	else:
 		print("xc error")
 
- 	calc = Vasp(	prec=prec, xc=xc, pp=pp, ispin=2,
+ 	calc = Vasp(	prec=prec, xc=xc, pp=pp, ispin=1,
 			ismear=1, sigma=0.2,
  			isif=3,
  			ibrion=2, nsw=10, potim=potim, ediffg=ediffg,

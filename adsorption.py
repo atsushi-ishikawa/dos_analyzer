@@ -60,10 +60,10 @@ prec   = "normal"
 encut  =  400.0
 nelmin =  5
 potim  =  0.10
-nsw    =  50
-ediff  =  1.0e-4
-ediffg = -0.10 # -0.03
-kpts   = [3, 3, 1]
+nsw    =  200
+ediff  =  1.0e-5
+ediffg = -0.03 # -0.03
+kpts   = [7, 7, 1]
 gamma  = True
 isym   = 0
 ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
