@@ -62,8 +62,8 @@ nelmin =  5
 potim  =  0.10
 nsw    =  200
 ediff  =  1.0e-5
-ediffg = -0.03 # -0.03
-kpts   = [7, 7, 1]
+ediffg = -0.05 # -0.03
+kpts   = [5, 5, 1]
 gamma  = True
 isym   = 0
 ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
@@ -169,6 +169,7 @@ e_surf = surf.get_potential_energy()
 dosfile  = "DOSCAR_" + element + "_" + face_str
 dosfile  = os.path.join(cudir, dosfile)
 os.system("cp DOSCAR %s" % dosfile)
+
 efermi = calc_surf.read_fermi()
 
 print "fermi energy:",efermi
@@ -197,16 +198,23 @@ if position_str == "ontop":
 add_adsorbate(surf, mol, 1.8, position=position)
 #
 e_tot = surf.get_potential_energy()
-#
 e_ads = e_tot - (e_surf + e_mol)
 #
 print "Adsorption energy:", e_ads
-
+#
+# copy vasprun.xml
+#
+xmlfile  = "vasprun_" + element + "_" + face_str + ".xml"
+xmlfile  = os.path.join(cudir, xmlfile)
+os.system("cp vasprun.xml %s" % xmlfile)
+#
+# write to surf
+#
 system = element + "_" + face_str
 db_surf.write(surf, system=system, lattice=lattice,
 			  data={ adsorbate + "-" + position_str: e_ads} )
 #
 # remove working directory
 #
-
 shutil.rmtree(workdir)
+
