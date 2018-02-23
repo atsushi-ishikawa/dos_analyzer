@@ -210,4 +210,3 @@ db_surf.write(surf, system=system, lattice=lattice,
 #
 
 shutil.rmtree(workdir)
-
