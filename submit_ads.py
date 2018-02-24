@@ -11,6 +11,7 @@ dict = {
 }
 
 for element in dict:
-	command = "qsub run_ads.sh " + str(element)
+	# command = "qsub run_ads.sh " + str(element) # gridengine
+	command = "pjsub -x \"INP={0}\" run_kyushu.sh".format(element) # PBS
 	os.system(command)
 
