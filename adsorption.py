@@ -67,12 +67,15 @@ kpts   = [5, 5, 1]
 gamma  = True
 isym   = 0
 ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
+
+npar = 6
+nsim = 6
 #
 # directry things
 #
 cudir   = os.getcwd()
-#workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)
-workdir = os.path.join("/tmp/" + element + "_" + face_str + "_" + adsorbate)
+workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)
+#workdir = os.path.join("/tmp/" + element + "_" + face_str + "_" + adsorbate) # whisky
 os.makedirs(workdir)
 os.chdir(workdir)
 #
@@ -160,7 +163,7 @@ surf.set_constraint(c)
 calc_surf = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
 		 encut=encut, ismear=1, sigma=0.2, istart=0, nelmin=nelmin, isym=isym,
 		 ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
-		 kpts=kpts, gamma=gamma, npar=12, nsim=12, lreal=True, lorbit=10 )
+		 kpts=kpts, gamma=gamma, npar=npar, nsim=sim, lreal=True, lorbit=10 )
 surf.set_calculator(calc_surf)
 e_surf = surf.get_potential_energy()
 #
@@ -184,7 +187,7 @@ mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
 		 encut=encut, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, isym=isym,
 		 ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
-		 kpts=[1,1,1], gamma=gamma, npar=12, nsim=12, lreal=True, lorbit=10 )
+		 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, lorbit=10 )
 
 mol.set_calculator(calc_mol)
 e_mol = mol.get_potential_energy()
