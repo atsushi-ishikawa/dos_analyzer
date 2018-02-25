@@ -4,6 +4,7 @@
 #
 from ase import Atoms, Atom
 from ase.calculators.vasp import Vasp
+from ase.calculators.emt import EMT
 from ase.constraints import FixAtoms
 from ase.build import bulk, surface, add_adsorbate
 from ase.db import connect
@@ -14,6 +15,7 @@ from vasptools import *
 import os, sys, shutil
 import numpy as np
 
+calculator = "emt"; calculator = calculator.lower()
 #
 # --- Determine lattice constant ---
 #
@@ -45,31 +47,47 @@ position_str = "ontop"
 # adsorbate = "CH3"
 # ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
 
-#
-# computational
-#
-xc     = "rpbe"
 vacuum = 10.0
 nlayer = 2
 nrelax = 2
 repeat_bulk = 2
 #
-# INCAR keywords
+# computational
 #
-prec   = "normal"
-encut  =  400.0
-nelmin =  5
-potim  =  0.10
-nsw    =  200
-ediff  =  1.0e-5
-ediffg = -0.05 # -0.03
-kpts   = [5, 5, 1]
-gamma  = True
-isym   = 0
-ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
+if "vasp" in calculator:
+	#
+	# INCAR keywords
+	#
+	xc     = "rpbe"
+	prec   = "normal"
+	encut  =  400.0
+	nelmin =  5
+	potim  =  0.10
+	nsw    =  200
+	ediff  =  1.0e-5
+	ediffg = -0.05 # -0.03
+	kpts   = [5, 5, 1]
+	gamma  = True
+	isym   = 0
+	ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 
-npar = 6
-nsim = 6
+	npar = 6
+	nsim = 6
+	#
+	# xc set
+	#
+	xc = xc.lower()
+	if xc == "pbe" or xc == "pbesol" or xc == "rpbe":
+		pp = "pbe"
+	elif xc == "pw91":
+		pp = "pw91"
+	elif xc == "lda":
+		pp = "lda"
+	else:
+		print("xc error")
+
+	## --- EMT --- -> nothing to set
+
 #
 # directry things
 #
@@ -90,18 +108,6 @@ surf_json = os.path.join(cudir, surf_json)
 
 db_surf   = connect(surf_json)
 # db_ads    = connect(ads_json)
-#
-# xc set
-#
-xc = xc.lower()
-if xc == "pbe" or xc == "pbesol" or xc == "rpbe":
-	pp = "pbe"
-elif xc == "pw91":
-	pp = "pw91"
-elif xc == "lda":
-	pp = "lda"
-else:
-	print("xc error")
 
 #
 # ------------------------ bulk ---------------------------
@@ -114,7 +120,8 @@ else:
 bulk_copy = bulk
 
 lattice, a0 = lattice_info_guess(bulk)
-a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
+# a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
+a = 7.0
 
 # make bulk again
 #if alloy:
@@ -160,22 +167,30 @@ surf.set_constraint(c)
 #                calulation starts here
 # ==================================================
 #
-calc_surf = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
-		 encut=encut, ismear=1, sigma=0.2, istart=0, nelmin=nelmin, isym=isym,
-		 ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
-		 kpts=kpts, gamma=gamma, npar=npar, nsim=sim, lreal=True, lorbit=10 )
+if "vasp" in calculator:
+	calc_surf = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
+					encut=encut,ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
+					isym=isym,ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
+			 		kpts=kpts, gamma=gamma, npar=npar, nsim=sim, lreal=True, 
+					lorbit=10 )
+elif "emt" in calculator:
+	calc_surf = EMT()
+
 surf.set_calculator(calc_surf)
 e_surf = surf.get_potential_energy()
-#
-# copy DOSCAR
-#
-dosfile  = "DOSCAR_" + element + "_" + face_str
-dosfile  = os.path.join(cudir, dosfile)
-os.system("cp DOSCAR %s" % dosfile)
 
-efermi = calc_surf.read_fermi()
-
-print "fermi energy:",efermi
+if "vasp" in calculator:
+	#
+	# copy DOSCAR
+	#
+	dosfile  = "DOSCAR_" + element + "_" + face_str
+	dosfile  = os.path.join(cudir, dosfile)
+	os.system("cp DOSCAR %s" % dosfile)
+	#
+	# printout Efermi
+	#
+	efermi = calc_surf.read_fermi()
+	print "fermi energy:",efermi
 
 # db_surf.write(surf, element=element1, lattice=lattice, face=face_str)
 #
@@ -184,10 +199,13 @@ print "fermi energy:",efermi
 cell = [10.0, 10.0, 10.0]
 mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 
-calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
-		 encut=encut, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, isym=isym,
-		 ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
-		 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, lorbit=10 )
+if "vasp" in calculator:
+	calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
+					 encut=encut, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, 
+					 isym=isym,ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
+					 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, lorbit=10 )
+elif "emt" in calculator:
+	calc_mol = EMT()
 
 mol.set_calculator(calc_mol)
 e_mol = mol.get_potential_energy()
@@ -197,8 +215,10 @@ e_mol = mol.get_potential_energy()
 if position_str == "ontop":
 	# position = (a*2.0/11.0, a*1.0/11.0) # when nlayer = 2
 	position = (0,0) # when nlayer = 1
+	offset = (0.5, 0.5)
 
-add_adsorbate(surf, mol, 1.8, position=position)
+add_adsorbate(surf, mol, 1.8, position=position, offset=offset)
+view(surf) ; quit()
 #
 e_tot = surf.get_potential_energy()
 e_ads = e_tot - (e_surf + e_mol)
@@ -207,9 +227,10 @@ print "Adsorption energy:", e_ads
 #
 # copy vasprun.xml
 #
-xmlfile  = "vasprun_" + element + "_" + face_str + ".xml"
-xmlfile  = os.path.join(cudir, xmlfile)
-os.system("cp vasprun.xml %s" % xmlfile)
+if "vasp" in calculator:
+	xmlfile  = "vasprun_" + element + "_" + face_str + ".xml"
+	xmlfile  = os.path.join(cudir, xmlfile)
+	os.system("cp vasprun.xml %s" % xmlfile)
 #
 # write to surf
 #
