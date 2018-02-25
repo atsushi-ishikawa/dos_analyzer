@@ -88,8 +88,6 @@ if "vasp" in calculator:
 
 	## --- EMT --- -> nothing to set
 
-npar = 12
-nsim = 12
 #
 # directry things
 #
