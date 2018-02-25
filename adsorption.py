@@ -15,7 +15,7 @@ from vasptools import *
 import os, sys, shutil
 import numpy as np
 
-calculator = "emt"; calculator = calculator.lower()
+calculator = "vasp"; calculator = calculator.lower()
 #
 # --- Determine lattice constant ---
 #
@@ -171,7 +171,7 @@ if "vasp" in calculator:
 	calc_surf = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
 					encut=encut,ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
 					isym=isym,ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
-			 		kpts=kpts, gamma=gamma, npar=npar, nsim=sim, lreal=True, 
+			 		kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, 
 					lorbit=10 )
 elif "emt" in calculator:
 	calc_surf = EMT()
