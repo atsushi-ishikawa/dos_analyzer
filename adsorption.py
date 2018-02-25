@@ -42,7 +42,7 @@ else:
 face      = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
 adsorbate = "CO"
 ads_geom  = [(0, 0, 0), (0, 0, 1.2)] # CO
-position_str = "ontop" 
+position_str = "atop" 
 
 # adsorbate = "CH3"
 # ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
@@ -88,6 +88,8 @@ if "vasp" in calculator:
 
 	## --- EMT --- -> nothing to set
 
+npar = 12
+nsim = 12
 #
 # directry things
 #
@@ -99,8 +101,8 @@ os.chdir(workdir)
 #
 # database to save data
 #
-# surf_json = "surf_data.json"
-surf_json = "surf_data_alloy.json"
+surf_json = "surf_data.json"
+# surf_json = "surf_data_alloy.json"
 # ads_json  = "ads_data.json"
 
 surf_json = os.path.join(cudir, surf_json)
@@ -212,7 +214,7 @@ e_mol = mol.get_potential_energy()
 #
 # ------------------- surface + adsorbate -------------------
 #
-if position_str == "ontop":
+if position_str == "atop":
 	# position = (a*2.0/11.0, a*1.0/11.0) # when nlayer = 2
 	position = (0,0) # when nlayer = 1
 	offset = (0.5, 0.5)
