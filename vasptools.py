@@ -73,7 +73,7 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	# directry things
 	#
 	cudir   = os.getcwd()
-	workdir = os.path.join(cudir, "tmpdir")
+	workdir = os.path.join(cudir, "lattice_opt")
 	os.makedirs(workdir)
 	os.chdir(workdir)
 	os.system("mkdir work_bulk")
@@ -82,9 +82,10 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	#
 	prec   = "normal"
 	potim  = 0.1
-	ediff  = 1.0e-4
- 	ediffg = -0.01
-	kpts = [3, 3, 3]
+	ediff  = 1.0e-5
+ 	ediffg = -0.05
+	kpts = [5, 5, 5]
+	nsw = 100
 
 	xc = xc.lower()
 	if xc == "pbe" or xc == "pbesol" or xc == "rpbe":
@@ -96,11 +97,10 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	else:
 		print("xc error")
 
- 	calc = Vasp(	prec=prec, xc=xc, pp=pp, ispin=1,
-			ismear=1, sigma=0.2,
- 			isif=3,
- 			ibrion=2, nsw=10, potim=potim, ediffg=ediffg,
-     			kpts=kpts
+ 	calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=1,
+		    ismear=1, sigma=0.2, isif=6,
+ 		    ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
+     		    kpts=kpts, isym=0
  		)
 
 	bulk.set_calculator(calc)
@@ -109,7 +109,7 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	a = bulk.cell[0,0] # optimized lattice constant
 
 	os.chdir(cudir)
- 	shutil.rmtree(workdir)
+ 	# shutil.rmtree(workdir)
 
 	return a
 

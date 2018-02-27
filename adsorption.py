@@ -6,9 +6,10 @@ from ase import Atoms, Atom
 from ase.calculators.vasp import Vasp
 from ase.calculators.emt import EMT
 from ase.constraints import FixAtoms
-from ase.build import bulk, surface, add_adsorbate
+from ase.build import bulk, surface, add_adsorbate, niggli_reduce
 from ase.db import connect
 from ase.visualize import view # debugging
+from ase.io import read,write
 
 from vasptools import *
 
@@ -71,8 +72,8 @@ if "vasp" in calculator:
 	isym   = 0
 	ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 
-	npar = 6
-	nsim = 6
+	npar = 12
+	nsim = 12
 	#
 	# xc set
 	#
@@ -99,8 +100,8 @@ os.chdir(workdir)
 #
 # database to save data
 #
-surf_json = "surf_data.json"
-# surf_json = "surf_data_alloy.json"
+# surf_json = "surf_data.json"
+surf_json = "surf_data_alloy.json"
 # ads_json  = "ads_data.json"
 
 surf_json = os.path.join(cudir, surf_json)
@@ -117,18 +118,27 @@ if alloy:
 else:
 	bulk = make_bulk(element, repeat=repeat_bulk)
 
-bulk_copy = bulk
+#bulk_copy = bulk
 
+### pos 0
+#a = 7.80
+### pos 0 --> good
+
+## lattice optimization
+### pos 1
 lattice, a0 = lattice_info_guess(bulk)
-# a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
-a = 7.0
+a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
+### pos 1 --> fail
+
+# bulk_copy = make_bulk(element1, element2=element2, comp1=comp1, a0=a, repeat=repeat_bulk)
+# del bulk
+# bulk = bulk_copy
 
 # make bulk again
 #if alloy:
 #	bulk = make_bulk(element1, element2=element2, comp1=comp1, a0=a, repeat=repeat_bulk)
 #else:
 #	bulk = make_bulk(element, a0=a, repeat=repeat_bulk)
-
 #
 # ------------------------ surface ------------------------
 #
@@ -136,9 +146,8 @@ a = 7.0
 #
 # surface construction
 #
-
 cell = bulk.get_cell()
-#print "cell,before",cell
+print "cell,before",cell
 #cell = cell/repeat_bulk
 #print "cell,after", cell
 
@@ -217,8 +226,7 @@ if position_str == "atop":
 	position = (0,0) # when nlayer = 1
 	offset = (0.5, 0.5)
 
-add_adsorbate(surf, mol, 1.8, position=position, offset=offset)
-view(surf) ; quit()
+add_adsorbate(surf, mol, 1.5, position=position, offset=offset)
 #
 e_tot = surf.get_potential_energy()
 e_ads = e_tot - (e_surf + e_mol)
