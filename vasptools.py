@@ -84,8 +84,9 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	potim  = 0.1
 	ediff  = 1.0e-5
  	ediffg = -0.05
+	nelmin  = 5
 	kpts = [5, 5, 5]
-	nsw = 100
+	nsw = 200
 
 	xc = xc.lower()
 	if xc == "pbe" or xc == "pbesol" or xc == "rpbe":
@@ -98,7 +99,7 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 		print("xc error")
 
  	calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=1,
-		    ismear=1, sigma=0.2, isif=6,
+		    ismear=1, sigma=0.2, isif=6, nelmin=nelmin,
  		    ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
      		    kpts=kpts, isym=0
  		)
