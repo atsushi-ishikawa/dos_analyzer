@@ -5,6 +5,7 @@ import numpy as np
 from vasptools import *
 from ase.db import connect
 from vasptools import fit_func
+from vasptools import get_efermi_from_doscar
 #
 # Usage:
 #  python analyze.dos Cu_111 s p d
@@ -15,14 +16,18 @@ db = connect(json)
 
 argvs = sys.argv
 # system = "Pd111"
-system  = argvs[1]
+system = argvs[1]
 doscar = "DOSCAR_" + system
-sigma = 4.0 # smaller the broader
-check = False
+sigma  = 4.0 # smaller the broader
+check  = False
 numpeaks = 2
 
 orbitals = []
 norbs = len(argvs) - 2 # number of orbitals
+
+efermi = get_efermi_from_doscar(doscar)
+print efermi;quit()
+
 #
 # get orbital list
 #
@@ -107,3 +112,4 @@ db2 = connect("tmpout.json")
 db2.write(atoms, system=system, lattice=lattice, data=data)
 
 print "DONE for system =", system
+

@@ -220,3 +220,11 @@ def sort_peaks_by_height(peaks):
 	newpeaks = newpeaks[::-1]
 	return newpeaks
 
+def get_efermi_from_doscar(DOSCAR):
+	import linecache
+	line   = linecache.getline(DOSCAR,6)
+	line   = line.strip()
+	line   = line.split()
+	efermi = float(line[3])
+	return efermi
+
