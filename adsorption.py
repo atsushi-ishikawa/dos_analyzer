@@ -35,7 +35,7 @@ if len(argvs) == 4:
 	element2 = argvs[2]
 	comp1    = int(argvs[3])
 	comp2    = 100 - comp1
-	element  = element1 + "{:.1f}".format(comp1/100.0) + element2 + "{:.1f}".format(comp2/100.0)
+	element  = element1 + "{:.2f}".format(comp1/100.0) + element2 + "{:.2f}".format(comp2/100.0)
 else:
 	alloy = False
 	element  = element1
@@ -67,7 +67,7 @@ if "vasp" in calculator:
 	nsw    =  200
 	ediff  =  1.0e-5
 	ediffg = -0.05 # -0.03
-	kpts   = [5, 5, 1]
+	kpts   = [4, 4, 1]
 	gamma  = True
 	isym   = 0
 	ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
@@ -147,7 +147,7 @@ a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
 # surface construction
 #
 cell = bulk.get_cell()
-print "cell,before",cell
+#print "cell,before",cell
 #cell = cell/repeat_bulk
 #print "cell,after", cell
 
