@@ -26,8 +26,6 @@ orbitals = []
 norbs = len(argvs) - 2 # number of orbitals
 
 efermi = get_efermi_from_doscar(doscar)
-print efermi;quit()
-
 #
 # get orbital list
 #
@@ -109,7 +107,7 @@ for orbital in orbitals:
 	atoms = db.get_atoms(id=id)
 
 db2 = connect("tmpout.json")
-db2.write(atoms, system=system, lattice=lattice, data=data)
+db2.write(atoms, system=system, lattice=lattice, data=data, efermi=efermi)
 
 print "DONE for system =", system
 
