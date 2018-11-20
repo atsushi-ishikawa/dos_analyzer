@@ -64,6 +64,8 @@ python plotdos.py Rh0.2Cu0.8_111 ; open DOS_Rh0.2Cu0.8_111.png
 ```
 
 #### DOS peak finding and add to database
+* need .json file in the same directory to draw information
+
 ```bash
 python analize_dos.py [system_name] [orbital]
  example: python analize_dos.py Rh0.2Cu0.8_111 d
@@ -85,3 +87,8 @@ json_to_csv("asdf.json","asdf.csv")
 from tools import load_ase_json
 df = load_ase_json("asdf.json") # dataframe
 ```
+
+---
+
+#### NOTE
+* sorting peaks --- depending on peak height? energy position?

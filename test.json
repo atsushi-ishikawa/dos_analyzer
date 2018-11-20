@@ -1,0 +1,17 @@
+{"1": {
+ "calculator": "vasp",
+ "calculator_parameters": {"kpts": [10, 10, 10], "reciprocal": false, "xc": "pbesol", "pp": "pbe", "prec": "normal", "isif": 3, "ibrion": 2, "gga": "PS", "ediffg": -0.001, "ispin": 2, "ismear": 1, "txt": "-", "sigma": 0.2, "potim": 0.1, "gamma": false, "nsw": 100},
+ "cell": [[3.7802768718050723, 0.0, 0.0], [0.0, 3.7802768718050723, 0.0], [-0.0, 0.0, 3.7802768718050723]],
+ "ctime": 17.528921532201718,
+ "dipole": [[0.0, 0.0, 0.0]],
+ "energy": -31.02235269,
+ "forces": [[0.0, -0.0, 0.0], [-0.0, 0.0, -0.0], [-0.0, 0.0, 0.0], [0.0, -0.0, -0.0]],
+ "key_value_pairs": {"lattice": "fcc", "xc": "pbesol", "element": "Rh", "fermi_energy" : -1.2985},
+ "mtime": 17.528921532201718,
+ "numbers": [45, 45, 45, 45],
+ "pbc": [true, true, true],
+ "positions": [[0.0, 0.0, 0.0], [0.0, 1.8901384359025362, 1.8901384359025362], [1.8901384359025362, 0.0, 1.8901384359025362], [1.8901384359025362, 1.8901384359025362, 0.0]],
+ "unique_id": "4b2717d3b8e7fd06cea7c638975dad7e",
+ "user": "a_ishi"},
+"ids": [1],
+"nextid": 2}
