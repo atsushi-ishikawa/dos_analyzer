@@ -16,7 +16,9 @@ db = connect(json)
 
 argvs  = sys.argv
 doscar = argvs[1]
-system = doscar.split("_")[1] + "_" + doscar.split("_")[2]
+#system = doscar.split("_")[1] + "_" + doscar.split("_")[2]
+system = argvs[1]
+doscar = "DOSCAR_" + system
 
 # sigma  = 1.0 # smaller the broader
 sigma  = 2.0 # smaller the broader
@@ -25,6 +27,7 @@ sigma  = 2.0 # smaller the broader
 # sigma  = 5.0 # smaller the broader
 # sigma  = 6.0 # smaller the broader
 check  = False
+
 numpeaks = 2
 
 orbitals = []
@@ -105,6 +108,7 @@ for orbital in orbitals:
 	#
 	# sort by position : only useful in numpeaks = 2
 	#
+
 	#if position[0] > position[1]:
 	if height[1] > height[0]:
 		tmp1 = position[0];	position[0] = position[1];  position[1] = tmp1
