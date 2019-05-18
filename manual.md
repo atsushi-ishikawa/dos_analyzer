@@ -87,8 +87,3 @@ json_to_csv("asdf.json","asdf.csv")
 from tools import load_ase_json
 df = load_ase_json("asdf.json") # dataframe
 ```
-
----
-
-#### NOTE
-* sorting peaks --- depending on peak height? energy position?
