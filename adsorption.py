@@ -20,8 +20,6 @@ calculator = "vasp"; calculator = calculator.lower()
 #
 # --- Determine lattice constant ---
 #
-
-#
 # basic conditions
 #
 argvs     = sys.argv
@@ -59,7 +57,7 @@ if "vasp" in calculator:
 	#
 	# INCAR keywords
 	#
-	xc     = "rpbe"
+	xc     = "pbe"
 	prec   = "normal"
 	encut  =  400.0
 	nelmin =  5
@@ -67,7 +65,7 @@ if "vasp" in calculator:
 	nsw    =  200
 	ediff  =  1.0e-5
 	ediffg = -0.05 # -0.03
-	kpts   = [4, 4, 1]
+	kpts   = [3,3,1]
 	gamma  = True
 	isym   = 0
 	ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
@@ -226,7 +224,7 @@ if position_str == "atop":
 	position = (0,0) # when nlayer = 1
 	offset = (0.5, 0.5)
 
-add_adsorbate(surf, mol, 1.5, position=position, offset=offset)
+add_adsorbate(surf, mol, 1.8, position=position, offset=offset)
 #
 e_tot = surf.get_potential_energy()
 e_ads = e_tot - (e_surf + e_mol)
