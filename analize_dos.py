@@ -4,9 +4,8 @@ import sys
 import numpy as np
 from vasptools import *
 from ase.db import connect
-# import matplotlib.pylab as plt
-# import seaborn as sb
 from vasptools import fit_func
+from vasptools import get_efermi_from_doscar
 #
 # Usage:
 #  python analyze.dos Cu_111 s p d
@@ -17,12 +16,16 @@ db = connect(json)
 
 argvs = sys.argv
 # system = "Pd111"
-system  = argvs[1]
+system = argvs[1]
 doscar = "DOSCAR_" + system
-sigma = 4.0 # smaller the broader
+sigma  = 4.0 # smaller the broader
+check  = False
+numpeaks = 2
 
 orbitals = []
 norbs = len(argvs) - 2 # number of orbitals
+
+efermi = get_efermi_from_doscar(doscar)
 #
 # get orbital list
 #
@@ -66,20 +69,28 @@ for orbital in orbitals:
  		params.append(pdos[idx])
 		params.append(width)
 	
-	params = gaussian_fit(ene, pdos, params)
-	peaks = sort_peaks_by_height(params)
+	# Try gaussian fit. If fails, return blanked list
+	try:
+		params = gaussian_fit(ene, pdos, params)
+		peaks  = sort_peaks_by_height(params)
+	except:
+		params = []
+		peaks = [(0,0,0) for i in range(numpeaks)]
+
 	#
 	# if you want to check by eye
 	#
-	fit = fit_func(ene,*params)
-#	sb.set(context='notebook', style='darkgrid', palette='deep', font='sans-serif', font_scale=1, color_codes=False, rc=None)
-# 	plt.plot(ene,fit)
-# 	plt.plot(ene,pdos)
-# 	plt.show()
+	if check:
+		import matplotlib.pylab as plt
+		import seaborn as sb
+		fit = fit_func(ene,*params)
+		sb.set(context='notebook', style='darkgrid', palette='deep', font='sans-serif', font_scale=1, color_codes=False, rc=None)
+		plt.plot(ene,fit)
+		plt.plot(ene,pdos)
+		plt.show()
 	#
 	# adding to database
 	#
-	numpeaks = 2
 	position = []
 	height   = []
 	width    = []
@@ -96,5 +107,7 @@ for orbital in orbitals:
 	atoms = db.get_atoms(id=id)
 
 db2 = connect("tmpout.json")
-db2.write(atoms, system=system, lattice=lattice, data=data)
+db2.write(atoms, system=system, lattice=lattice, data=data, efermi=efermi)
+
+print "DONE for system =", system
 
