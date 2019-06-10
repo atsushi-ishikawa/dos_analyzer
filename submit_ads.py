@@ -13,7 +13,7 @@ dict = {
 # pure metal
 for i in range(0,len(dict)):
 	element = dict[str(i)]["element"]
-	command = "pjsub -x \"INP={0}\" run_vasp.sh".format(element)
+	command = "pjsub -x \"INP1={0}\" run_vasp.sh".format(element)
 	os.system(command)
 
 # alloy
@@ -21,10 +21,6 @@ for i in range(0,len(dict)):
 	element1 = dict[str(i)]["element"]
 	for j in range(i+1,len(dict)):
 		element2 = dict[str(j)]["element"]
-		# comp1 = 60 # do not use 100 or 0
-		#for comp1 in range(0,150,50): # start, end, diff
-		#for comp1 in range(0,125,25): # start, end, diff
-		#for comp1 in range(0,110,5): # start, end, diff
 		for comp1 in range(50,100,50): # start, end, diff
 		#for comp1 in range(10,100,10): # start, end, diff
 		# for comp1 in range(75,0,-25): # start, end, diff
