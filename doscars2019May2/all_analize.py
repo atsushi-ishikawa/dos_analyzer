@@ -5,6 +5,7 @@ from tools import json_to_csv
 jsonfile = "tmpout.json"
 csvfile  = "tmpout.csv"
 
+numpeaks = 1
 os.system('rm %s' % jsonfile)
 
 name_list = os.listdir("./")
@@ -29,7 +30,8 @@ for i in list1:
 		del df[key]
 
 		df[i + '-' + j + '1'] = tmp[0]
-		#df[i + '-' + j + '2'] = tmp[1]
+		if numpeaks==2:
+			df[i + '-' + j + '2'] = tmp[1]
 
 del df["Unnamed: 0"];  del df["calculator"]; del df["cell"]
 del df["constraints"]; del df["ctime"]; del df["dipole"];    del df["energy"]; del df["forces"]

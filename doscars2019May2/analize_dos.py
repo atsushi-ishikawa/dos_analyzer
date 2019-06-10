@@ -17,13 +17,12 @@ argvs  = sys.argv
 doscar = argvs[1]
 system = doscar.split("_")[1] + "_" + doscar.split("_")[2]
 
-sigma  = 2.0 # smaller the broader. 0.5 gives broaden peak -- for singple peak use
+sigma  = 0.2 # smaller the broader. 0.05 gives broaden peak -- for singple peak use
 check  = False
 numpeaks = 1
 
 orbitals = []
-norbs = len(argvs) - 2 # number of orbitals
-
+norbs = len(argvs) - 2 # number of orbitals 
 efermi = get_efermi_from_doscar(doscar)
 #
 # get orbital list
@@ -66,11 +65,10 @@ for orbital in orbitals:
 	pdos = smear_dos(ene, pdos, sigma=sigma)
 	#pdos = pdos/max(pdos) # relative
 	peaks = findpeak(ene, pdos)
-	if check:
-		for i in peaks:
-			print(ene[i])
+	for i in peaks:
+		print("%s  %6.3f" % (orbital,ene[i]-efermi))
 
-	width = 0.10 # guess for the Gaussian fit
+	width = 0.1 # guess for the Gaussian fit
 	params = []
 	for idx in peaks:
 		params.append(ene[idx])
@@ -81,7 +79,7 @@ for orbital in orbitals:
 	#
 	try:
 		params = gaussian_fit(ene, pdos, params)
-		peaks  = sort_peaks(params,key="position") # sort by pos. would be better than height
+		peaks  = sort_peaks(params, key="position") # sort by pos. would be better than height
 	except:
 		params = []
 		peaks  = [(0,0,0) for i in range(numpeaks)]
@@ -121,11 +119,11 @@ for orbital in orbitals:
 	#
 	# sort by position : only useful in numpeaks = 2
 	#
-	if numpeaks==2 and position[0] > position[1]:
-#	if numpeaks==2 and height[1] > height[0]:
-	 	tmp1 = position[0];	position[0] = position[1];  position[1] = tmp1
- 		tmp2 = height[0];	height[0]   = height[1];	height[1]   = tmp2
- 		tmp3 = width[0];	width[0]    = width[1];		width[1]    = tmp3
+	#if numpeaks==2 and position[0] > position[1]:
+	if numpeaks==2 and height[1] > height[0]:
+		tmp1 = position[0];	position[0] = position[1];  position[1] = tmp1
+		tmp2 = height[0];	height[0]   = height[1];	height[1]   = tmp2
+		tmp3 = width[0];	width[0]    = width[1];		width[1]    = tmp3
 
 	data.update({ orbital + "-dos " + "position" : position})
 	data.update({ orbital + "-dos " + "height"   : height})
