@@ -8,7 +8,7 @@ import seaborn as sb
 
 argvs = sys.argv
 system  = argvs[1]
-#system : "Pd111"
+#system : "Pd_111"
 
 if len(argvs) == 3:
 	orbital = argvs[2]
@@ -17,7 +17,7 @@ else:
 	draw_pdos = False
 
 doscar = "DOSCAR_" + system
-sigma = 20.0
+sigma = 10.0
 
 #
 # finding natom
@@ -33,18 +33,10 @@ ene  = dos.energy
 tdos = dos.dos
 tdos = smear_dos(ene, tdos, sigma=sigma)
 
-if draw_pdos:
-	pdos = np.zeros(len(tdos))
-	for i in range(0,natom):
-		pdos = pdos + dos.site_dos(i, orbital)
-	pdos = smear_dos(ene, pdos, sigma=sigma)
+outname = system + ".txt"
+fout = open(outname,"w")
 
-sb.set(context='notebook', style='darkgrid', palette='deep', font='sans-serif', font_scale=1, color_codes=False, rc=None)
+for i,x in enumerate(ene):
+	fout.write("{0:<12.4f}{1:12.4e}\n".format(ene[i],tdos[i]))
 
-#plt.plot(ene, tdos,"r-",linewidth=2)
-plt.plot(ene, tdos)
-filename = "DOS_" + system + ".png"
-plt.ylabel("Density of state (-)")
-plt.xlabel("Energy (eV)")
-plt.savefig(filename)
-#plt.show()
+fout.close()

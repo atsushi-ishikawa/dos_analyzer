@@ -102,7 +102,7 @@ def load_ase_json(jsonfile):
  		ddd2 = ddd.set_index("num")
  		ddd  = ddd2.sort_index()
 
- 	return ddd
+	return ddd
 
 def delete_num_from_json(num,jsonfile):
 	from ase.db import connect

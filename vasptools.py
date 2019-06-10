@@ -14,11 +14,11 @@ def lattice_info_guess(bulk):
 	}
 	element = bulk.get_chemical_symbols()[0]
 	if element in dict:
-		print "I know this."
+		print("I know this.")
 		lattice = dict[element]["lattice"]
 		a0 = dict[element]["a0"]
 	else:
-		print "I don't know this."
+		print("I don't know this.")
 		lattice = "fcc"
 		a0 = 4.0
 
@@ -67,7 +67,7 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	function to return optimized bulk constant
 	"""
 	from ase import Atoms
- 	from ase.calculators.vasp import Vasp
+	from ase.calculators.vasp import Vasp
 	import os, shutil
 	#
 	# directry things
@@ -83,7 +83,7 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	prec   = "normal"
 	potim  = 0.1
 	ediff  = 1.0e-5
- 	ediffg = -0.05
+	ediffg = -0.05
 	nelmin  = 5
 	kpts = [5, 5, 5]
 	nsw = 200
@@ -98,11 +98,11 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	else:
 		print("xc error")
 
- 	calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=1,
-		    ismear=1, sigma=0.2, isif=6, nelmin=nelmin,
- 		    ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-     		    kpts=kpts, isym=0
- 		)
+	calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=1,
+			ismear=1, sigma=0.2, isif=6, nelmin=nelmin,
+			ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
+			kpts=kpts, isym=0
+			)
 
 	bulk.set_calculator(calc)
 	bulk.get_potential_energy()
@@ -182,7 +182,7 @@ def findpeak(x, y):
 	import numpy as np
 	import peakutils 
 
-	indexes = peakutils.indexes(y, thres=0.01, min_dist=1)
+	indexes = peakutils.indexes(y, thres=0.1, min_dist=1)
 	return indexes
 
 def fit_func(x, *params):
@@ -205,18 +205,18 @@ def gaussian_fit(x, y, guess):
 
 	return popt
 
-def sort_peaks_by_height(peaks):
+def sort_peaks(peaks,key="height"):
 	import numpy as np
 	"""
 	  assuming peaks are stored in [position,height,width,position,height,...]
 	"""
 	dtype = [ ("position",float), ("height",float), ("width",float) ]
-	newpeaks = np.array([],dtype=dtype)
+	newpeaks = np.array([], dtype=dtype)
 	for i in range(0, len(peaks), 3):
 		peak  = np.array([ (peaks[i],peaks[i+1],peaks[i+2]) ], dtype=dtype)
 		newpeaks = np.append(newpeaks, peak)
 
-	newpeaks = np.sort(newpeaks,order="height")
+	newpeaks = np.sort(newpeaks, order=key)
 	newpeaks = newpeaks[::-1]
 	return newpeaks
 
