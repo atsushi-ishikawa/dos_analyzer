@@ -59,19 +59,19 @@ if "vasp" in calculator:
 	#
 	xc     = "pbe"
 	prec   = "normal"
-	encut  =  400.0
+	encut  =  400
 	nelmin =  5
 	potim  =  0.10
 	nsw    =  200
-	ediff  =  1.0e-5
+	ediff  =  1.0e-6
 	ediffg = -0.05 # -0.03
 	kpts   = [3,3,1]
 	gamma  = True
 	isym   = 0
 	ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 
-	npar = 12
-	nsim = 12
+	npar = 40
+	nsim = 40
 	#
 	# xc set
 	#
