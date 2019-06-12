@@ -39,9 +39,12 @@ else:
 	element  = element1
 
 face      = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
-adsorbate = "CO"
-ads_geom  = [(0, 0, 0), (0, 0, 1.2)] # CO
-position_str = "atop" 
+#adsorbate = "CO"
+#ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
+#position_str = "atop" 
+adsorbate = "C"
+ads_geom  = [(0, 0, 0)]
+position_str = "fcc"
 
 # adsorbate = "CH3"
 # ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
@@ -146,7 +149,7 @@ a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0)
 #
 cell = bulk.get_cell()
 #print "cell,before",cell
-#cell = cell/repeat_bulk
+#cell = cell // repeat_bulk
 #print "cell,after", cell
 
 bulk.set_cell(cell)
@@ -158,7 +161,7 @@ surf = sort_atoms_by_z(surf)
 # setting tags for relax/freeze
 #
 natoms   = len(surf.get_atomic_numbers())
-one_surf = natoms / nlayer / repeat_bulk
+one_surf = natoms // nlayer // repeat_bulk
 tag = np.ones(natoms, int)
 for i in range(natoms-1, natoms-nrelax*one_surf-1, -1):
 	tag[i] = 0
@@ -197,7 +200,7 @@ if "vasp" in calculator:
 	# printout Efermi
 	#
 	efermi = calc_surf.read_fermi()
-	print "fermi energy:",efermi
+	print("fermi energy:",efermi)
 
 # db_surf.write(surf, element=element1, lattice=lattice, face=face_str)
 #
@@ -209,7 +212,7 @@ mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 if "vasp" in calculator:
 	calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
 					 encut=encut, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, 
-					 isym=isym,ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
+					 isym=isym, ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
 					 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, lorbit=10 )
 elif "emt" in calculator:
 	calc_mol = EMT()
@@ -223,13 +226,16 @@ if position_str == "atop":
 	# position = (a*2.0/11.0, a*1.0/11.0) # when nlayer = 2
 	position = (0,0) # when nlayer = 1
 	offset = (0.5, 0.5)
+elif position_str == "fcc":
+	position = (0,0) # when nlayer = 1
+	offset = (0.25, 0.25)
 
 add_adsorbate(surf, mol, 1.8, position=position, offset=offset)
 #
 e_tot = surf.get_potential_energy()
 e_ads = e_tot - (e_surf + e_mol)
 #
-print "Adsorption energy:", e_ads
+print("Adsorption energy:", e_ads)
 #
 # copy vasprun.xml
 #
