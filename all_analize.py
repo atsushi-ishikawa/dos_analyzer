@@ -39,6 +39,30 @@ del df["lattice"];     del df["tags"];  del df["unique_id"]; del df["user"];   d
 del df["positions"];   del df["stress"]
 del df["mtime"];       del df["numbers"]
 
+# dropping strange values
+print("dropping strange values...before: %4d" % len(df))
+df = df[df["s-height1"].astype(float) > 0]
+df = df[df["p-height1"].astype(float) > 0]
+df = df[df["d-height1"].astype(float) > 0]
+
+df = df[df["s-width1"].astype(float) > 0]
+df = df[df["p-width1"].astype(float) > 0]
+df = df[df["d-width1"].astype(float) > 0]
+
+if numpeaks==2:
+	df = df[df["s-height2"].astype(float) > 0]
+	df = df[df["p-height2"].astype(float) > 0]
+	df = df[df["d-height2"].astype(float) > 0]
+
+	df = df[df["s-width2"].astype(float) > 0]
+	df = df[df["p-width2"].astype(float) > 0]
+	df = df[df["d-width2"].astype(float) > 0]
+
+print("dropping strange values...after: %4d" % len(df))
+
+df.set_index("system")
+del df["system"]
+
 df.to_csv(csvfile)
 os.system("rm tmp.csv")
 
