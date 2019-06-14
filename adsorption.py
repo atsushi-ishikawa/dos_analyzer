@@ -41,10 +41,10 @@ else:
 face      = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
 #adsorbate = "CO"
 #ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
-#position_str = "atop" 
-adsorbate = "C"
+position_str = "fcc" 
+adsorbate = "O"
 ads_geom  = [(0, 0, 0)]
-position_str = "fcc"
+#position_str = "hcp"
 
 # adsorbate = "CH3"
 # ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
@@ -72,6 +72,7 @@ if "vasp" in calculator:
 	gamma  = True
 	isym   = 0
 	ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
+	ispin_adsorbate = 2
 
 	npar = 40
 	nsim = 40
@@ -157,7 +158,6 @@ surf = surface(bulk, face, nlayer, vacuum=vacuum)
 surf.translate([0, 0, -vacuum])
 
 surf = sort_atoms_by_z(surf)
-#
 # setting tags for relax/freeze
 #
 natoms   = len(surf.get_atomic_numbers())
@@ -167,6 +167,23 @@ for i in range(natoms-1, natoms-nrelax*one_surf-1, -1):
 	tag[i] = 0
 
 surf.set_tags(tag)
+#
+# if x goes to negative ... invert to positive
+#
+if np.any( surf.cell[:,0] < 0 ):
+	#
+	# invert atoms
+	#
+ 	for i in range(len(surf)):
+ 		xpos = surf[i].position[0]
+ 		surf[i].position[0] = -xpos
+	#
+ 	# invert cell
+	#
+ 	xpos = surf.cell[1,0]
+ 	surf.cell[1,0] = -xpos
+
+surf.wrap()
 #
 # making surface
 #
@@ -210,7 +227,7 @@ cell = [10.0, 10.0, 10.0]
 mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 
 if "vasp" in calculator:
-	calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
+	calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
 					 encut=encut, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, 
 					 isym=isym, ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
 					 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, lorbit=10 )
@@ -226,11 +243,14 @@ if position_str == "atop":
 	# position = (a*2.0/11.0, a*1.0/11.0) # when nlayer = 2
 	position = (0,0) # when nlayer = 1
 	offset = (0.5, 0.5)
+elif position_str == "hcp":
+	position = (0,0) # when nlayer = 1
+	offset = (0.1667, 0.1667)
 elif position_str == "fcc":
 	position = (0,0) # when nlayer = 1
-	offset = (0.25, 0.25)
+	offset = (0.3333, 0.3333)
 
-add_adsorbate(surf, mol, 1.8, position=position, offset=offset)
+add_adsorbate(surf, mol, 1.5, position=position, offset=offset)
 #
 e_tot = surf.get_potential_energy()
 e_ads = e_tot - (e_surf + e_mol)
