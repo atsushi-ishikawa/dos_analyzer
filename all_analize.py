@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 from tools import json_to_csv
 
 jsonfile = "tmpout.json"
@@ -40,7 +41,7 @@ del df["positions"];   del df["stress"]
 del df["mtime"];       del df["numbers"]
 
 # dropping strange values
-print("dropping strange values...before: %4d" % len(df))
+print("dropping strange values...before:%4d" % len(df))
 df = df[df["s-height1"].astype(float) > 0]
 df = df[df["p-height1"].astype(float) > 0]
 df = df[df["d-height1"].astype(float) > 0]
@@ -58,10 +59,24 @@ if numpeaks==2:
 	df = df[df["p-width2"].astype(float) > 0]
 	df = df[df["d-width2"].astype(float) > 0]
 
+df.set_index("system")
+#del df["system"]
+
 print("dropping strange values...after: %4d" % len(df))
 
-df.set_index("system")
-del df["system"]
+print("dropping outliers for Eads...before:%4d"% len(df))
+
+i = 0
+col = df.iloc[:,i]
+ave = np.mean(col)
+std = np.std(col)
+outlier_max = ave + 2*std
+outlier_min = ave - 2*std
+
+df = df[(df.iloc[:,i] < outlier_max) & (df.iloc[:,i] > outlier_min)]
+
+df.dropna(how='any', axis=0)
+print("dropping outliers...after: %4d"% len(df))
 
 df.to_csv(csvfile)
 os.system("rm tmp.csv")
