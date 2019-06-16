@@ -39,15 +39,18 @@ else:
 	element  = element1
 
 face      = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
-#adsorbate = "CO"
-#ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
-position_str = "fcc" 
-adsorbate = "O"
-ads_geom  = [(0, 0, 0)]
-#position_str = "hcp"
 
-# adsorbate = "CH3"
-# ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
+position_str = "atop" # atop, hcp, fcc
+#adsorbate = "O"
+adsorbate = "CO"
+#adsorbate = "CH3"
+
+#ads_geom  = [(0, 0, 0)]
+#ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
+ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
+
+#ads_height = 1.5
+ads_height = 1.8
 
 vacuum = 10.0
 nlayer = 2
@@ -61,17 +64,19 @@ if "vasp" in calculator:
 	# INCAR keywords
 	#
 	xc     = "pbe"
-	prec   = "normal"
-	encut  =  400
+	prec   = "low"
+	encut  =  350
 	nelmin =  5
 	potim  =  0.10
-	nsw    =  200
-	ediff  =  1.0e-6
+	nsw    =  50
+	ediff  =  1.0e-4
 	ediffg = -0.05 # -0.03
-	kpts   = [3,3,1]
+	kpts   = [2,2,1]
 	gamma  = True
 	isym   = 0
 	ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
+	ibrion = 1
+	nfree  = 10
 	ispin_adsorbate = 2
 
 	npar = 40
@@ -197,7 +202,7 @@ surf.set_constraint(c)
 if "vasp" in calculator:
 	calc_surf = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
 					encut=encut,ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
-					isym=isym,ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
+					isym=isym,ibrion=ibrion, nfree=nfree, nsw=nsw, potim=potim, ediffg=ediffg,
 			 		kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, 
 					lorbit=10 )
 elif "emt" in calculator:
@@ -229,7 +234,7 @@ mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 if "vasp" in calculator:
 	calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
 					 encut=encut, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, 
-					 isym=isym, ibrion=2, nsw=nsw, potim=potim, ediffg=ediffg,
+					 isym=isym, ibrion=ibrion, nfree=nfree, nsw=nsw, potim=potim, ediffg=ediffg,
 					 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, lorbit=10 )
 elif "emt" in calculator:
 	calc_mol = EMT()
@@ -250,7 +255,7 @@ elif position_str == "fcc":
 	position = (0,0) # when nlayer = 1
 	offset = (0.3333, 0.3333)
 
-add_adsorbate(surf, mol, 1.5, position=position, offset=offset)
+add_adsorbate(surf, mol, ads_height, position=position, offset=offset)
 #
 e_tot = surf.get_potential_energy()
 e_ads = e_tot - (e_surf + e_mol)
