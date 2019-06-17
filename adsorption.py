@@ -38,7 +38,7 @@ else:
 	alloy = False
 	element  = element1
 
-face      = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
+face = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
 
 position_str = "atop" # atop, hcp, fcc
 #adsorbate = "O"
@@ -46,8 +46,8 @@ adsorbate = "CO"
 #adsorbate = "CH3"
 
 #ads_geom  = [(0, 0, 0)]
-#ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
 ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
+#ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
 
 #ads_height = 1.5
 ads_height = 1.8
@@ -63,7 +63,7 @@ if "vasp" in calculator:
 	#
 	# INCAR keywords
 	#
-	xc     = "pbe"
+	xc     = "beef-vdw"
 	prec   = "low"
 	encut  =  350
 	nelmin =  5
@@ -92,7 +92,7 @@ if "vasp" in calculator:
 	elif xc == "lda":
 		pp = "lda"
 	else:
-		print("xc error")
+		pp = "pbe"
 
 	## --- EMT --- -> nothing to set
 
@@ -104,6 +104,7 @@ workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)
 #workdir = os.path.join("/tmp/" + element + "_" + face_str + "_" + adsorbate) # whisky
 os.makedirs(workdir)
 os.chdir(workdir)
+shutil.copy("../vdw_kernel.bindat" , ".")
 #
 # database to save data
 #
@@ -201,10 +202,10 @@ surf.set_constraint(c)
 #
 if "vasp" in calculator:
 	calc_surf = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
-					encut=encut,ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
-					isym=isym,ibrion=ibrion, nfree=nfree, nsw=nsw, potim=potim, ediffg=ediffg,
-			 		kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, 
-					lorbit=10 )
+					 encut=encut, ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
+					 isym=isym,ibrion=ibrion, nfree=nfree, nsw=nsw, potim=potim, ediffg=ediffg,
+			 		 kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, 
+					 lorbit=10 )
 elif "emt" in calculator:
 	calc_surf = EMT()
 
