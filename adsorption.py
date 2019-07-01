@@ -49,8 +49,7 @@ adsorbate = "CO"
 ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
 #ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
 
-#ads_height = 1.5
-ads_height = 1.8
+ads_height = 1.6
 
 vacuum = 10.0
 nlayer = 2
@@ -79,8 +78,8 @@ if "vasp" in calculator:
 	nfree  = 20
 	ispin_adsorbate = 1
 
-	npar = 18
-	nsim = 18
+	npar = 40 # 18 for ito
+	nsim = 40
 	#
 	# xc set
 	#

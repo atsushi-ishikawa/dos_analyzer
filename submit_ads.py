@@ -15,7 +15,8 @@ dict = {
 # pure metal
 for i in range(0,len(dict)):
 	element = dict[str(i)]["element"]
-	command = "pjsub -x \"INP1={0}\" run_kyushu.sh".format(element)
+	#command = "pjsub -x \"INP1={0}\" run_kyushu.sh".format(element)
+	command = "pjsub -x \"INP1={0}\" run_vasp.sh".format(element)
 	os.system(command)
 
 # alloy
@@ -28,7 +29,8 @@ if alloy:
 			#for comp1 in range(25,100,25): # start, end, diff
 			for comp1 in range(10,50,10):  # start, end, diff # part1
 			#for comp1 in range(50,100,10): # start, end, diff # part1
-			# for comp1 in range(75,0,-25): # start, end, diff
-				command = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_kyushu.sh".format(element1,element2,comp1) # PBS
+			#for comp1 in range(75,0,-25): # start, end, diff
+				#command = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_kyushu.sh".format(element1,element2,comp1) # PBS
+				command = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_vasp.sh".format(element1,element2,comp1) # PBS
 				os.system(command)
 
