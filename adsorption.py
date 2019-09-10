@@ -63,24 +63,24 @@ if "vasp" in calculator:
 	#
 	# INCAR keywords
 	#
-	xc     = "beef-vdw"
-	prec   = "low"
-	encut  =  350
+	xc     = "rpbe"
+	prec   = "normal"
+	encut  =  400
 	nelmin =  5
 	potim  =  0.10
-	nsw    =  50
-	ediff  =  1.0e-4
-	ediffg = -0.05 # -0.03
-	kpts   = [2,2,1]
+	nsw    =  200
+	ediff  =  1.0e-6
+	ediffg = -0.03 # -0.03
+	kpts   = [3,3,1]
 	gamma  = True
 	isym   = 0
 	ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 	ibrion = 1
-	nfree  = 10
-	ispin_adsorbate = 2
+	nfree  = 20
+	ispin_adsorbate = 1
 
-	npar = 40
-	nsim = 40
+	npar = 18
+	nsim = 18
 	#
 	# xc set
 	#
