@@ -47,9 +47,12 @@ adsorbate = "CO"
 
 #ads_geom  = [(0, 0, 0)]
 ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
-#ads_geom  = [(0, 0, 0), (-0.6, 0, 1.1), (0.6, 0, 1.1), (0, 0.6, 1.1)]
+#ads_geom  = [(1, 1, 0), (0.4, 1, 1.3), (1.6, 1, 1.3), (1, 1.6, 1.3)]
 
-ads_height = 1.6
+if adsorbate=="CO":
+	ads_height = 1.6
+elif adsorbate=="CH3":
+	ads_height = 2.1
 
 vacuum = 10.0
 nlayer = 2
@@ -62,19 +65,19 @@ if "vasp" in calculator:
 	#
 	# INCAR keywords
 	#
-	xc     = "rpbe"
+	xc     = "pbe"
 	prec   = "normal"
 	encut  =  400
 	nelmin =  5
 	potim  =  0.10
 	nsw    =  200
 	ediff  =  1.0e-6
-	ediffg = -0.03 # -0.03
+	ediffg = -0.03
 	kpts   = [3,3,1]
 	gamma  = True
 	isym   = 0
 	ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
-	ibrion = 1
+	ibrion = 2
 	nfree  = 20
 	ispin_adsorbate = 1
 
@@ -245,14 +248,13 @@ e_mol = mol.get_potential_energy()
 # ------------------- surface + adsorbate -------------------
 #
 if position_str == "atop":
-	# position = (a*2.0/11.0, a*1.0/11.0) # when nlayer = 2
-	position = (0,0) # when nlayer = 1
+	position = (0, 0)
 	offset = (0.5, 0.5)
 elif position_str == "hcp":
-	position = (0,0) # when nlayer = 1
+	position = (0,0)
 	offset = (0.1667, 0.1667)
 elif position_str == "fcc":
-	position = (0,0) # when nlayer = 1
+	position = (0,0)
 	offset = (0.3333, 0.3333)
 
 add_adsorbate(surf, mol, ads_height, position=position, offset=offset)
@@ -273,7 +275,8 @@ if "vasp" in calculator:
 #
 system = element + "_" + face_str
 db_surf.write(surf, system=system, lattice=lattice,
-			  data={ adsorbate + "-" + position_str: e_ads} )
+			  #data={ adsorbate + "-" + position_str: e_ads} )
+			  data={ "E_ads" : e_ads} )
 #
 # remove working directory
 #
