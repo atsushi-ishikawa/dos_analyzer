@@ -47,12 +47,12 @@ adsorbate = "CH3"
 
 #ads_geom  = [(0, 0, 0)]
 #ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
-ads_geom  = [(1, 1, 0), (0.4, 1, 1.3), (1.6, 1, 1.3), (1, 1.6, 1.3)]
+ads_geom  = [(1, 1, 0), (0.4, 1, 0), (1.6, 1, 0), (1, 1.6, 0)]
 
 if adsorbate=="CO":
 	ads_height = 1.6
 elif adsorbate=="CH3":
-	ads_height = 2.1
+	ads_height = 2.2
 
 vacuum = 10.0
 nlayer = 2
@@ -237,7 +237,7 @@ mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 if "vasp" in calculator:
 	calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
 					 encut=encut, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, 
-					 isym=isym, ibrion=ibrion, nfree=nfree, nsw=nsw, potim=potim, ediffg=ediffg,
+					 isym=isym, ibrion=2, nfree=nfree, nsw=nsw, potim=potim, ediffg=ediffg,
 					 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, lorbit=10 )
 elif "emt" in calculator:
 	calc_mol = EMT()
@@ -256,6 +256,12 @@ elif position_str == "hcp":
 elif position_str == "fcc":
 	position = (0,0)
 	offset = (0.3333, 0.3333)
+
+# shift H of CH3 to upper
+if adsorbate=="CH3":
+	for i,j in enumerate(mol.get_chemical_symbols()):
+		if j=="H":
+			mol[i].position[2] += 0.5
 
 add_adsorbate(surf, mol, ads_height, position=position, offset=offset)
 #
