@@ -42,12 +42,12 @@ face = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
 
 position_str = "atop" # atop, hcp, fcc
 #adsorbate = "O"
-adsorbate = "CO"
-#adsorbate = "CH3"
+#adsorbate = "CO"
+adsorbate = "CH3"
 
 #ads_geom  = [(0, 0, 0)]
-ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
-#ads_geom  = [(1, 1, 0), (0.4, 1, 1.3), (1.6, 1, 1.3), (1, 1.6, 1.3)]
+#ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
+ads_geom  = [(1, 1, 0), (0.4, 1, 1.3), (1.6, 1, 1.3), (1, 1.6, 1.3)]
 
 if adsorbate=="CO":
 	ads_height = 1.6
@@ -77,7 +77,7 @@ if "vasp" in calculator:
 	gamma  = True
 	isym   = 0
 	ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
-	ibrion = 2
+	ibrion = 1
 	nfree  = 20
 	ispin_adsorbate = 1
 
