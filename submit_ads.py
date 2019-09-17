@@ -25,11 +25,23 @@ if alloy:
 		element1 = dict[str(i)]["element"]
 		for j in range(i+1,len(dict)):
 			element2 = dict[str(j)]["element"]
+			
+			# --- change by 50%
 			#for comp1 in range(50,100,50): # start, end, diff
+
+			# --- change by 25%
 			#for comp1 in range(25,100,25): # start, end, diff
-			for comp1 in range(10,50,10):  # start, end, diff # part1
-			#for comp1 in range(50,100,10): # start, end, diff # part1
-			#for comp1 in range(75,0,-25): # start, end, diff
+
+			# --- change by 10%
+			#for comp1 in range(10,50,10):  # start, end, diff # part1
+			for comp1 in range(50,100,10): # start, end, diff # part2
+
+			# --- change by 5%
+			#for comp1 in range(5,25,5):   # start, end, diff # part1
+			#for comp1 in range(25,50,5):  # start, end, diff # part2
+			#for comp1 in range(50,75,5):  # start, end, diff # part3
+			#for comp1 in range(75,100,5): # start, end, diff # part4
+
 				#command = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_kyushu.sh".format(element1,element2,comp1) # PBS
 				command = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_vasp.sh".format(element1,element2,comp1) # PBS
 				os.system(command)

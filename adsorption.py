@@ -67,7 +67,7 @@ if "vasp" in calculator:
 	#
 	xc     = "pbe"
 	prec   = "normal"
-	encut  =  400
+	encut  =  500
 	nelmin =  5
 	potim  =  0.10
 	nsw    =  200
@@ -206,7 +206,7 @@ if "vasp" in calculator:
 	calc_surf = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
 					 encut=encut, ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
 					 isym=isym,ibrion=ibrion, nfree=nfree, nsw=nsw, potim=potim, ediffg=ediffg,
-			 		 kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=False, 
+			 		 kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True,
 					 lorbit=10 )
 elif "emt" in calculator:
 	calc_surf = EMT()
@@ -238,7 +238,7 @@ if "vasp" in calculator:
 	calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
 					 encut=encut, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, 
 					 isym=isym, ibrion=2, nfree=nfree, nsw=nsw, potim=potim, ediffg=ediffg,
-					 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=False, lorbit=10 )
+					 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, lorbit=10 )
 elif "emt" in calculator:
 	calc_mol = EMT()
 
