@@ -12,13 +12,6 @@ dict = {
   "6"  : {"element" : "Au" , "lattice" : "fcc" }
 }
 
-# pure metal
-for i in range(0,len(dict)):
-	element = dict[str(i)]["element"]
-	#command = "pjsub -x \"INP1={0}\" run_kyushu.sh".format(element)
-	command = "pjsub -x \"INP1={0}\" run_vasp.sh".format(element)
-	os.system(command)
-
 # alloy
 if alloy:
 	for i in range(0,len(dict)):
@@ -33,8 +26,9 @@ if alloy:
 			#for comp1 in range(25,100,25): # start, end, diff
 
 			# --- change by 10%
-			#for comp1 in range(10,50,10):  # start, end, diff # part1
-			for comp1 in range(50,100,10): # start, end, diff # part2
+			first = True
+			for comp1 in range(10,50,10):  # start, end, diff # part1
+			#for comp1 in range(50,100,10): # start, end, diff # part2
 
 			# --- change by 5%
 			#for comp1 in range(5,25,5):   # start, end, diff # part1
@@ -42,7 +36,16 @@ if alloy:
 			#for comp1 in range(50,75,5):  # start, end, diff # part3
 			#for comp1 in range(75,100,5): # start, end, diff # part4
 
-				#command = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_kyushu.sh".format(element1,element2,comp1) # PBS
-				command = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_vasp.sh".format(element1,element2,comp1) # PBS
+				command = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_kyushu.sh".format(element1,element2,comp1) # PBS
+				#command = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_vasp.sh".format(element1,element2,comp1) # PBS
 				os.system(command)
+
+# do pure metal if the loop is first
+
+if first:
+	for i in range(0,len(dict)):
+		element = dict[str(i)]["element"]
+		command = "pjsub -x \"INP1={0}\" run_kyushu.sh".format(element)
+		#command = "pjsub -x \"INP1={0}\" run_vasp.sh".format(element)
+		os.system(command)
 
