@@ -82,8 +82,6 @@ def get_optimized_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", enc
 	#
 	prec   = "normal"
 	potim  = 0.1
-	ediff  = 1.0e-5
-	ediffg = -0.05
 	nelmin  = 5
 	kpts = [5, 5, 5]
 	nsw = 200
@@ -99,9 +97,9 @@ def get_optimized_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", enc
 		print("xc error")
 
 	calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=1,
-			ismear=1, sigma=0.2, isif=6, nelmin=nelmin,
+			ismear=1, sigma=0.2, isif=6, nelmin=nelmin, encut=encut,
 			ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-			kpts=kpts, isym=0 )
+			kpts=kpts, isym=0, npar=npar, nsim=nsim )
 
 	bulk.set_calculator(calc)
 	bulk.get_potential_energy()
