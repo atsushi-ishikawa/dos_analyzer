@@ -62,7 +62,7 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
 
 	return bulk
 
-def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
+def get_optimized_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", encut=400, ediff=1.0e-5, ediffg=-0.05, npar=1, nsim=1):
 	""" 
 	function to return optimized bulk constant
 	"""
@@ -101,8 +101,7 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=1,
 			ismear=1, sigma=0.2, isif=6, nelmin=nelmin,
 			ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-			kpts=kpts, isym=0
-			)
+			kpts=kpts, isym=0 )
 
 	bulk.set_calculator(calc)
 	bulk.get_potential_energy()
