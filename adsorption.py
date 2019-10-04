@@ -42,17 +42,15 @@ face = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
 
 position_str = "atop" # atop, hcp, fcc
 #adsorbate = "O"
-#adsorbate = "CO"
-adsorbate = "CH3"
-
-#ads_geom  = [(0, 0, 0)]
-#ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
-ads_geom  = [(1, 1, 0), (0.4, 1, 0), (1.6, 1, 0), (1, 1.6, 0)]
+adsorbate = "CO"
+#adsorbate = "CH3"
 
 if adsorbate=="CO":
 	ads_height = 1.6
+	ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
 elif adsorbate=="CH3":
 	ads_height = 2.2
+	ads_geom  = [(1, 1, 0), (0.4, 1, 0), (1.6, 1, 0), (1, 1.6, 0)]
 
 vacuum = 10.0
 nlayer = 2
