@@ -67,13 +67,13 @@ if "vasp" in calculator:
 	#
 	xc     = "pbe"
 	prec   = "normal"
-	encut  =  500
+	encut  =  400
 	nelmin =  5
 	potim  =  0.10
 	nsw    =  200
-	ediff  =  1.0e-8
+	ediff  =  1.0e-6
 	ediffg = -0.03
-	kpts   = [5, 5, 1]
+	kpts   = [4,4,1]
 	gamma  = True
 	isym   = 0
 	ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
@@ -138,7 +138,7 @@ else:
 ### pos 1
 lattice, a0 = lattice_info_guess(bulk)
 a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0, xc="PBEsol", 
-								   encut=encut, ediff=ediff, ediffg=ediffg, npar=npar, nsim=nsim)
+								   encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
 ### pos 1 --> fail
 
 # bulk_copy = make_bulk(element1, element2=element2, comp1=comp1, a0=a, repeat=repeat_bulk)
@@ -206,8 +206,8 @@ surf.set_constraint(c)
 if "vasp" in calculator:
 	calc_surf = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
 					 encut=encut, ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
-					 isym=isym, ibrion=ibrion, nfree=nfree, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-			 		 kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True,
+					 isym=isym, ibrion=ibrion, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
+			 		 kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree,
 					 lorbit=10 )
 elif "emt" in calculator:
 	calc_surf = EMT()
@@ -238,8 +238,9 @@ mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 if "vasp" in calculator:
 	calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
 					 encut=encut, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, 
-					 isym=isym, ibrion=2, nfree=nfree, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-					 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, lorbit=10 )
+					 isym=isym, ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
+					 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree,
+					 lorbit=10 )
 elif "emt" in calculator:
 	calc_mol = EMT()
 

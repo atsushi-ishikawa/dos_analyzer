@@ -12,6 +12,7 @@ dict = {
   "6"  : {"element" : "Au" , "lattice" : "fcc" }
 }
 
+first = True
 # alloy
 if alloy:
 	for i in range(0,len(dict)):
@@ -26,13 +27,14 @@ if alloy:
 			#for comp1 in range(25,100,25): # start, end, diff
 
 			# --- change by 10%
-			first = True
-			for comp1 in range(10,50,10):  # start, end, diff # part1
+			#first = False
+			#for comp1 in range(10,50,10):  # start, end, diff # part1
 			#for comp1 in range(50,100,10): # start, end, diff # part2
 
 			# --- change by 5%
+			first = False
 			#for comp1 in range(5,25,5):   # start, end, diff # part1
-			#for comp1 in range(25,50,5):  # start, end, diff # part2
+			for comp1 in range(25,50,5):  # start, end, diff # part2
 			#for comp1 in range(50,75,5):  # start, end, diff # part3
 			#for comp1 in range(75,100,5): # start, end, diff # part4
 
