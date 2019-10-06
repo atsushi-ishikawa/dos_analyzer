@@ -6,7 +6,7 @@ from tools import json_to_csv
 jsonfile = "tmpout.json"
 csvfile  = "tmpout.csv"
 
-numpeaks = 2
+numpeaks = 4
 os.system('rm %s' % jsonfile)
 
 name_list = os.listdir("./")
@@ -22,19 +22,7 @@ json_to_csv(jsonfile, "tmp.csv")
 #
 df = pd.read_csv("tmp.csv")
 
-list1 = ["s","p","d"]
-list2 = ["height","position","width"]
-#list2 = ["height","position","width","center"]
-
-for i in list1:
-	for j in list2:
-		key = i + "-" + j
-		tmp = df[key].str.replace("[","").str.replace("]","").str.split(",", expand=True)
-		del df[key]
-
-		for peak in range(numpeaks):
-			df[i + '-' + j + str(peak+1)] = tmp[peak]
-
+# drop unnecessary features
 del df["Unnamed: 0"];	del df["calculator"]
 del df["constraints"];	del df["ctime"];		del df["dipole"];	del df["energy"];	del df["forces"]
 del df["mtime"];		del df["numbers"];		del df["pbc"];		del df["positions"]
@@ -44,30 +32,44 @@ del df["cell.array"];	del df["cell.pbc"];		del df["cell.__ase_objtype__"];			del
 if "stress" in df.columns:
 	del df["stress"]
 
+
+# format adjustment
+orbital = ["s","p","d"]
+keys    = ["height","position","width"]
+
+for i in orbital:
+	for j in keys:
+		key = i + "-" + j
+		tmp = df[key].str.replace("[","").str.replace("]","").str.split(",", expand=True)
+		del df[key]
+
+		for peak in range(numpeaks):
+			df[i + '-' + j + str(peak+1)] = tmp[peak]
+
+# convert to float
+
 for i in df.columns:
 	if i!="system":
 		df[i] = df[i].astype(float)
+
 df.set_index("system")
 
 # delete system tag
 del df["system"]
 
+df = df.fillna(0.0)
+
 # dropping strange values
 print("dropping strange values...before:%4d" % len(df))
-df = df[ (df["s-height1"] > 0.0) & (df["s-height1"] < 1000.0) ]
 
-df = df[df["s-width1"] > 0.0]
-df = df[df["p-width1"] > 0.0]
-df = df[df["d-width1"] > 0.0]
-
-#if numpeaks==2:
-#	df = df[ (df["s-height2"] > 0.0) & (df["s-height2"] < 1000.0) ]
-#	df = df[df["p-height2"] > 0.0]
-#	df = df[df["d-height2"] > 0.0]
-#
-#	df = df[df["s-width2"] > 0.0]
-#	df = df[df["p-width2"] > 0.0]
-#	df = df[df["d-width2"] > 0.0]
+for i in orbital:
+	for j in ["-height","-width"]:
+		for k in range(1,numpeaks+1):
+			key = i + j + str(k)
+			if k==1:
+				df = df[df[key] >  0.0] # zero is not allowed in the first peak -- at least one peak!
+			else:
+				df = df[df[key] >= 0.0]
 
 print("dropping strange values...after: %4d" % len(df))
 
@@ -86,7 +88,6 @@ print("dropping outliers...after: %4d"% len(df))
 df = df[df["CO-atop"] <  0.0]
 print("dropping positive adsorption energy...after: %4d" % len(df))
 
-df = df.fillna(0.0)
 
 df.to_csv(csvfile)
 os.system("rm tmp.csv")

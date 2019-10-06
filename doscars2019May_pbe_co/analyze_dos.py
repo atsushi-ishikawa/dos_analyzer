@@ -26,7 +26,7 @@ if numpeaks==1:
 elif numpeaks==2:
 	sigma = 2.0
 else:
-	sigma = 12.0
+	sigma = 5.0
 
 check = False
 
@@ -122,23 +122,11 @@ for orbital in orbitals:
 	#
 	# adding to database
 	#
-
-	# take peaks only smaller than fermi + margin
-	#peaks = [peak for peak in peaks if peak[0] < efermi + margin]
-
-	#position = [[] for i in range(numpeaks)]
-	#height   = [[] for i in range(numpeaks)]
-	#width    = [[] for i in range(numpeaks)]
 	position = [] ; height = [] ; width = []
-
-	#for i in range(numpeaks):
-	#	position.append(peaks[i][0])
-	#	#position.append(peaks[i][0]-efermi)
-	#	height.append(peaks[i][1])
-	#	width.append(peaks[i][2])
 
 	for peak in peaks:
 		position.append(peak[0])
+		#position.append(peak[0]-efermi)
 		height.append(peak[1])
 		width.append(peak[2])
 	#
