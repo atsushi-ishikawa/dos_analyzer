@@ -201,8 +201,12 @@ def gaussian_fit(x, y, guess):
 	popt, pcov = curve_fit(fit_func, x, y, p0=guess)
 
 	fit = fit_func(x,*popt)
+	residual = y - fit
+	rss = np.sum(residual**2) # residual sum of squares
+	tss = np.sum( (y-np.mean(y))**2 ) # total sum of squares
+	r2 = 1 - (rss / tss)
 
-	return popt
+	return popt,rss,r2
 
 def sort_peaks(peaks,key="height"):
 	import numpy as np
