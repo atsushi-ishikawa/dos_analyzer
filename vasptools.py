@@ -62,7 +62,7 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
 
 	return bulk
 
-def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
+def get_optimized_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", encut=400, ediff=1.0e-5, ediffg=1.0e-6, npar=1, nsim=1):
 	""" 
 	function to return optimized bulk constant
 	"""
@@ -82,11 +82,11 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 	#
 	prec   = "normal"
 	potim  = 0.1
-	ediff  = 1.0e-5
-	ediffg = -0.05
-	nelmin  = 5
-	kpts = [5, 5, 5]
-	nsw = 200
+	nelmin = 5
+	kpts   = [6,6,6]
+	gamma  = True
+	nsw    = 200
+	isif   = 6 # or 6---freezing ions
 
 	xc = xc.lower()
 	if xc == "pbe" or xc == "pbesol" or xc == "rpbe":
@@ -99,10 +99,9 @@ def get_optimized_lattice_constant(bulk, lattice="fcc",a0=4.0, xc="PBEsol"):
 		print("xc error")
 
 	calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=1,
-			ismear=1, sigma=0.2, isif=6, nelmin=nelmin,
-			ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-			kpts=kpts, isym=0
-			)
+				ismear=1, sigma=0.2, isif=isif, nelmin=nelmin, encut=encut,
+				ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
+				kpts=kpts, gamma=gamma, isym=0, npar=npar, nsim=nsim )
 
 	bulk.set_calculator(calc)
 	bulk.get_potential_energy()
@@ -202,12 +201,8 @@ def gaussian_fit(x, y, guess):
 	popt, pcov = curve_fit(fit_func, x, y, p0=guess)
 
 	fit = fit_func(x,*popt)
-	residual = y - fit
-	rss = np.sum(residual**2) # residual sum of squares
-	tss = np.sum( (y-np.mean(y))**2 ) # total sum of squares
-	r2 = 1 - (rss / tss)
 
-	return popt,rss,r2
+	return popt
 
 def sort_peaks(peaks,key="height"):
 	import numpy as np
