@@ -21,7 +21,7 @@ if alloy:
 			element2 = dict[str(j)]["element"]
 			
 			# --- change by 50%
-			#for comp1 in range(50,100,50): # start, end, diff
+			for comp1 in range(50,100,50): # start, end, diff
 
 			# --- change by 25%
 			#for comp1 in range(25,100,25): # start, end, diff

@@ -20,10 +20,11 @@ numpeaks = int(argvs[1])
 doscar = argvs[2]
 system = doscar.split("_")[1] + "_" + doscar.split("_")[2]
 
+# smaller the broader. 0.1 gives broaden peak -- for singple peak use
 if numpeaks==1:
-	sigma = 0.5 # 0.5 # splits in two peaks in 1.0
+	sigma = 0.1
 elif numpeaks==2:
-	sigma = 3.0 # 2.0 # 1.0
+	sigma = 2.0
 else:
 	sigma = 5.0
 
@@ -50,7 +51,7 @@ dos = VaspDos(doscar=doscar)
 ene  = dos.energy
 tdos = dos.dos
 
-margin = 4.0
+margin = 1.0
 
 ene2 = list(filter(lambda x : x <= efermi+margin, ene))
 old_last = len(ene)
@@ -75,11 +76,11 @@ for orbital in orbitals:
 	pdos = smear_dos(ene, pdos, sigma=sigma)
 	#pdos = pdos/max(pdos) # relative
 	peaks = findpeak(ene, pdos)
-	#for i in peaks:
-	#	print("%s  %6.3f" % (orbital,ene[i]-efermi))
-
 	center = [get_distribution_moment(ene, tmppdos, order=1)]
 	#center = [get_distribution_moment(ene, tmppdos, order=1) - efermi]
+
+	for i in peaks:
+		print("%s  %6.3f" % (orbital,ene[i]-efermi))
 
 	width = 0.1 # guess for the Gaussian fit
 	params = []
@@ -103,6 +104,11 @@ for orbital in orbitals:
 	# quit if R^2 is too low
 	if r2 < 0.8:
 		print("fitting failed ... quit")
+		params = gaussian_fit(ene, pdos, params)
+		#peaks  = sort_peaks(params, key="height")
+		peaks  = sort_peaks(params, key="position")
+	except:
+		params = []
 		peaks  = [(0,0,0) for i in range(numpeaks)]
 	#
 	# if you want to check by eye

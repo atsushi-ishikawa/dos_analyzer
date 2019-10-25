@@ -41,8 +41,8 @@ else:
 face = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
 
 position_str = "atop" # atop, hcp, fcc
-#adsorbate = "O"
-adsorbate = "CO"
+adsorbate = "O"
+#adsorbate = "CO"
 #adsorbate = "CH3"
 
 if adsorbate=="CO":
@@ -51,6 +51,9 @@ if adsorbate=="CO":
 elif adsorbate=="CH3":
 	ads_height = 2.2
 	ads_geom  = [(1, 1, 0), (0.4, 1, 0), (1.6, 1, 0), (1, 1.6, 0)]
+else:
+	ads_height = 1.8
+	ads_geom  = [(0, 0, 0)]
 
 vacuum = 10.0
 nlayer = 2
@@ -65,19 +68,27 @@ if "vasp" in calculator:
 	#
 	xc     = "pbe"
 	prec   = "normal"
-	encut  =  400
+	encut  =  350
 	nelmin =  5
 	potim  =  0.10
-	nsw    =  200
-	ediff  =  1.0e-6
+	nsw    =  20
+	ediff  =  1.0e-5
 	ediffg = -0.03
-	kpts   = [4,4,1]
-	gamma  = True
-	isym   = 0
-	ispin  = 1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
-	ibrion = 2
-	nfree  = 20
-	ispin_adsorbate = 1
+	kpts   =  [2,2,1]
+	gamma  =  True
+	isym   = -1
+	ispin  =  1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
+	ibrion =  2
+	nfree  =  20
+	ispin_adsorbate = 2
+	#
+	# single point 
+	#
+	xc_sp     = "pbe"
+	encut_sp  = 400
+	ismear_sp = -5
+	sigma_sp  = 0.1
+	kpts_sp  = [9,9,1]
 
 	npar = 18 # 18 for ito
 	nsim = 18
@@ -108,8 +119,8 @@ shutil.copy("../vdw_kernel.bindat" , ".")
 #
 # database to save data
 #
-# surf_json = "surf_data.json"
-surf_json = "surf_data_alloy.json"
+surf_json = "surf_data.json"
+# surf_json = "surf_data_alloy.json"
 # ads_json  = "ads_data.json"
 
 surf_json = os.path.join(cudir, surf_json)
@@ -126,28 +137,12 @@ if alloy:
 else:
 	bulk = make_bulk(element, repeat=repeat_bulk)
 
-#bulk_copy = bulk
-
-### pos 0
-#a = 7.80
-### pos 0 --> good
-
 ## lattice optimization
-### pos 1
 lattice, a0 = lattice_info_guess(bulk)
-a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0, xc="PBEsol", 
-								   encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
-### pos 1 --> fail
+#
+#a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0, xc="PBEsol", 
+#								   encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
 
-# bulk_copy = make_bulk(element1, element2=element2, comp1=comp1, a0=a, repeat=repeat_bulk)
-# del bulk
-# bulk = bulk_copy
-
-# make bulk again
-#if alloy:
-#	bulk = make_bulk(element1, element2=element2, comp1=comp1, a0=a, repeat=repeat_bulk)
-#else:
-#	bulk = make_bulk(element, a0=a, repeat=repeat_bulk)
 #
 # ------------------------ surface ------------------------
 #
@@ -165,6 +160,30 @@ surf = surface(bulk, face, nlayer, vacuum=vacuum)
 surf.translate([0, 0, -vacuum])
 
 surf = sort_atoms_by_z(surf)
+
+calc_formation_energy = False
+if alloy and calc_formation_energy:
+	nat = 0
+	bulk_energy = 0.0
+	for ielem in [element1, element2]:
+		bulk = make_bulk(ielem, repeat=2)
+		#a1 = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0, xc="PBEsol", 
+		#								    encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
+		#calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
+		#			encut=encut_sp, ismear=ismear, sigma=sigma, istart=0, nelmin=nelmin, 
+		#			isym=isym, ibrion=-1, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
+		#			kpts=[3,3,3], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
+		calc = EMT()
+		bulk.set_calculator(calc)
+		ene = bulk.get_potential_energy()
+		ene = ene / len(bulk)
+		nat = surf.get_chemical_symbols().count(ielem)
+		bulk_energy += ene * nat
+		print("ene:{}".format(ene))
+		print("nat:{}".format(nat))
+
+	print("bulk_energy:{}".format(bulk_energy))
+#
 # setting tags for relax/freeze
 #
 natoms   = len(surf.get_atomic_numbers())
@@ -201,17 +220,32 @@ surf.set_constraint(c)
 #                calulation starts here
 # ==================================================
 #
-if "vasp" in calculator:
-	calc_surf = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
-					 encut=encut, ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
-					 isym=isym, ibrion=ibrion, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-			 		 kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree,
-					 lorbit=10 )
-elif "emt" in calculator:
-	calc_surf = EMT()
 
-surf.set_calculator(calc_surf)
+# optimization
+if "vasp" in calculator:
+	calc_surf_opt = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
+						 encut=encut, ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
+						 isym=isym, ibrion=ibrion, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
+			 			 kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
+elif "emt" in calculator:
+	calc_surf_opt = EMT()
+
+surf.set_calculator(calc_surf_opt)
+surf.get_potential_energy()
+
+# single point
+if "vasp" in calculator:
+	calc_surf_sp = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
+					    encut=encut_sp, ismear=ismear_sp, sigma=0.2, istart=0, nelmin=nelmin, 
+					    isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
+			 		    kpts=kpts_sp, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree, lorbit=10 )
+elif "emt" in calculator:
+	calc_surf_sp = EMT()
+
+surf.set_calculator(calc_surf_sp)
 e_surf = surf.get_potential_energy()
+#print("surface number:",len(surf))
+#print("e_surf:{}".format(e_surf))
 
 if "vasp" in calculator:
 	#
@@ -223,10 +257,8 @@ if "vasp" in calculator:
 	#
 	# printout Efermi
 	#
-	efermi = calc_surf.read_fermi()
-	print("fermi energy:",efermi)
-
-# db_surf.write(surf, element=element1, lattice=lattice, face=face_str)
+	efermi = calc_surf_sp.read_fermi()
+	print("fermi energy:", efermi)
 #
 # ------------------------ adsorbate ------------------------
 #
@@ -235,10 +267,9 @@ mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 
 if "vasp" in calculator:
 	calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
-					 encut=encut, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, 
+					 encut=encut_sp, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, 
 					 isym=isym, ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-					 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree,
-					 lorbit=10 )
+					 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
 elif "emt" in calculator:
 	calc_mol = EMT()
 

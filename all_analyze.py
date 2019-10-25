@@ -35,7 +35,6 @@ if "stress" in df.columns:
 # format adjustment
 orbital = ["s","p","d"]
 keys    = ["height","position","width"]
-#keys    = ["height","position","width","center"]
 
 for i in orbital:
 	for j in keys:
