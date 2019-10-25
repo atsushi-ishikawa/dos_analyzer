@@ -208,19 +208,38 @@ def gaussian_fit(x, y, guess):
 
 	return popt,rss,r2
 
-def sort_peaks(peaks,key="height"):
+#def sort_peaks(peaks, key="height", split=True, efermi=0.0):
+def sort_peaks(peaks, key="height"):
 	import numpy as np
 	"""
-	  assuming peaks are stored in [position,height,width,position,height,...]
+	  assuming peaks are stored in [position, height, width,  position, height, width,...]
 	"""
 	dtype = [ ("position",float), ("height",float), ("width",float) ]
+
+	#if split:
+	#	occ_peaks = np.array([], dtype=dtype)
+	#	vir_peaks = np.array([], dtype=dtype)
+	#else:
 	newpeaks = np.array([], dtype=dtype)
+
 	for i in range(0, len(peaks), 3):
-		peak  = np.array([ (peaks[i],peaks[i+1],peaks[i+2]) ], dtype=dtype)
+		peak = np.array(( peaks[i],peaks[i+1],peaks[i+2] ), dtype=dtype)
+		#if split:
+		#	if peaks[i] <= efermi:
+		#		occ_peaks = np.append(occ_peaks, peak)
+		#	else:
+		#		vir_peaks = np.append(vir_peaks, peak)
+		#else:
 		newpeaks = np.append(newpeaks, peak)
 
+	#if split:
+	#	occ_peaks = np.sort(occ_peaks, order=key)
+	#	occ_peaks = occ_peaks[::-1]
+	#	vir_peaks = np.sort(vir_peaks, order=key)
+	#	return occ_peaks, vir_peaks
+	#else:
 	newpeaks = np.sort(newpeaks, order=key)
-	newpeaks = newpeaks[::-1]
+	newpeaks = newpeaks[::-1] # sort in descending order
 	return newpeaks
 
 def get_efermi_from_doscar(DOSCAR):
@@ -230,4 +249,29 @@ def get_efermi_from_doscar(DOSCAR):
 	line   = line.split()
 	efermi = float(line[3])
 	return efermi
+
+def calc_edge(numpeaks, ene, pdos):
+	import numpy as np
+	from scipy import fftpack
+	#
+	# take upper edge by inverse Hilbert transform
+	#
+	ih = fftpack.ihilbert(pdos)
+	ihpeaks = findpeak(ene, abs(ih))
+
+	upper_edge = np.zeros(numpeaks)
+	lower_edge = np.zeros(numpeaks)
+
+	for peak in ihpeaks:
+		if ih[peak] > 0.0 and ih[peak] > 0.8*max(ih): # just choose large peak, positive part
+			upper_edge = np.insert(upper_edge, 0, ene[peak])
+		elif ih[peak] <= 0.0 and ih[peak] < 0.8*min(ih):
+			lower_edge = np.insert(lower_edge, 0, ene[peak])
+
+	upper_edge = upper_edge[0:numpeaks]
+	lower_edge = lower_edge[0:numpeaks]
+	upper_edge = upper_edge[::-1]
+	lower_edge = lower_edge[::-1]
+
+	return upper_edge, lower_edge
 
