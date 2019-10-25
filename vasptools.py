@@ -54,6 +54,9 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
 		#
 		list = bulk.get_chemical_symbols()
 		#
+
+		np.random.seed(1)# set random seed for reproducability
+
 		replace_list = np.random.choice(len(list), size=natom2, replace=False)
 		for i in replace_list:
 			list[i] = element2
@@ -83,9 +86,9 @@ def get_optimized_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", enc
 	prec   = "normal"
 	potim  = 0.1
 	nelmin = 5
-	kpts   = [6,6,6]
+	kpts   = [2,2,2]
 	gamma  = True
-	nsw    = 200
+	nsw    = 100
 	isif   = 6 # or 6---freezing ions
 
 	xc = xc.lower()
@@ -106,12 +109,12 @@ def get_optimized_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", enc
 	bulk.set_calculator(calc)
 	bulk.get_potential_energy()
 
-	a = bulk.cell[0,0] # optimized lattice constant
+	cell = bulk.cell # optimized cell size
 
 	os.chdir(cudir)
- 	# shutil.rmtree(workdir)
+ 	shutil.rmtree(workdir)
 
-	return a
+	return cell
 
 def gaussian(x,x0,a,b):
 	"""

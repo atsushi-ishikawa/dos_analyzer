@@ -88,7 +88,7 @@ if "vasp" in calculator:
 	encut_sp  = 400
 	ismear_sp = -5
 	sigma_sp  = 0.1
-	kpts_sp  = [9,9,1]
+	kpts_sp  = [3,3,1]
 
 	npar = 18 # 18 for ito
 	nsim = 18
@@ -120,15 +120,28 @@ shutil.copy("../vdw_kernel.bindat" , ".")
 # database to save data
 #
 surf_json = "surf_data.json"
-# surf_json = "surf_data_alloy.json"
 # ads_json  = "ads_data.json"
 
 surf_json = os.path.join(cudir, surf_json)
 # ads_json  = os.path.join(cudir, ads_json)
 
 db_surf   = connect(surf_json)
-# db_ads    = connect(ads_json)
 
+#
+# Set calculator here. Different levels for optimization and single point (DOS)
+#
+if "vasp" in calculator:
+	calc_surf_opt = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
+						 encut=encut, ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
+						 isym=isym, ibrion=ibrion, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
+			 			 kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
+	calc_surf_sp  = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
+					     encut=encut_sp, ismear=ismear_sp, sigma=0.2, istart=0, nelmin=nelmin, 
+					     isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
+			 		     kpts=kpts_sp, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree, lorbit=10 )
+elif "emt" in calculator:
+	calc_surf_opt = EMT()
+	calc_surf_sp  = calc_surf_opt
 #
 # ------------------------ bulk ---------------------------
 #
@@ -140,9 +153,11 @@ else:
 ## lattice optimization
 lattice, a0 = lattice_info_guess(bulk)
 #
-#a = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0, xc="PBEsol", 
-#								   encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
-
+print("old cell: ", bulk.cell)
+optimize_lattice_constant(bulk, lattice=lattice, a0=a0, xc="PBEsol", 
+						  encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
+print("new cell: ", bulk.cell)
+quit()
 #
 # ------------------------ surface ------------------------
 #
@@ -151,38 +166,44 @@ lattice, a0 = lattice_info_guess(bulk)
 # surface construction
 #
 cell = bulk.get_cell()
+bulk.set_cell(optimized_cell)
+quit()
 #print "cell,before",cell
 #cell = cell // repeat_bulk
 #print "cell,after", cell
 
-bulk.set_cell(cell)
 surf = surface(bulk, face, nlayer, vacuum=vacuum)
 surf.translate([0, 0, -vacuum])
 
 surf = sort_atoms_by_z(surf)
 
-calc_formation_energy = False
+calc_formation_energy = True
 if alloy and calc_formation_energy:
 	nat = 0
-	bulk_energy = 0.0
+	e_bulk = 0.0
 	for ielem in [element1, element2]:
 		bulk = make_bulk(ielem, repeat=2)
 		#a1 = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0, xc="PBEsol", 
-		#								    encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
-		#calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
-		#			encut=encut_sp, ismear=ismear, sigma=sigma, istart=0, nelmin=nelmin, 
-		#			isym=isym, ibrion=-1, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-		#			kpts=[3,3,3], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
-		calc = EMT()
-		bulk.set_calculator(calc)
+		#									 encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
+		#
+		# bulk energy for formation energy --- same with alloy surface calculator
+		#
+
+		# optimization
+		bulk.set_calculator(calc_surf_opt)
+		bulk.get_potential_energy()
+
+		# single point
+		bulk.set_calculator(calc_surf_sp)
 		ene = bulk.get_potential_energy()
-		ene = ene / len(bulk)
+
+		ene = ene // len(bulk)
 		nat = surf.get_chemical_symbols().count(ielem)
-		bulk_energy += ene * nat
+		e_bulk += ene * nat
 		print("ene:{}".format(ene))
 		print("nat:{}".format(nat))
 
-	print("bulk_energy:{}".format(bulk_energy))
+	print("bulk_energy:", e_bulk)
 #
 # setting tags for relax/freeze
 #
@@ -220,32 +241,17 @@ surf.set_constraint(c)
 #                calulation starts here
 # ==================================================
 #
-
 # optimization
-if "vasp" in calculator:
-	calc_surf_opt = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
-						 encut=encut, ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
-						 isym=isym, ibrion=ibrion, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-			 			 kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
-elif "emt" in calculator:
-	calc_surf_opt = EMT()
-
 surf.set_calculator(calc_surf_opt)
 surf.get_potential_energy()
 
 # single point
-if "vasp" in calculator:
-	calc_surf_sp = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
-					    encut=encut_sp, ismear=ismear_sp, sigma=0.2, istart=0, nelmin=nelmin, 
-					    isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
-			 		    kpts=kpts_sp, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree, lorbit=10 )
-elif "emt" in calculator:
-	calc_surf_sp = EMT()
-
 surf.set_calculator(calc_surf_sp)
 e_surf = surf.get_potential_energy()
-#print("surface number:",len(surf))
-#print("e_surf:{}".format(e_surf))
+
+print("surface number:",len(surf))
+print("e_surf:{}".format(e_surf))
+print("formation energy:", e_surf-e_bulk)
 
 if "vasp" in calculator:
 	#
@@ -296,6 +302,21 @@ if adsorbate=="CH3":
 
 add_adsorbate(surf, mol, ads_height, position=position, offset=offset)
 #
+# optimization
+#
+surf.get_potential_energy()
+#
+# single point
+#
+if "vasp" in calculator:
+	calc_surf_sp = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
+					    encut=encut_sp, ismear=ismear_sp, sigma=0.2, istart=0, nelmin=nelmin, 
+					    isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
+			 		    kpts=kpts_sp, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
+elif "emt" in calculator:
+	calc_surf_sp = EMT()
+
+surf.set_calculator(calc_surf_sp)
 e_tot = surf.get_potential_energy()
 e_ads = e_tot - (e_surf + e_mol)
 #
