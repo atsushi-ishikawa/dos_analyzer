@@ -68,13 +68,13 @@ if "vasp" in calculator:
 	#
 	xc     = "pbe"
 	prec   = "normal"
-	encut  =  350
+	encut  =  400
 	nelmin =  5
 	potim  =  0.10
 	nsw    =  20
 	ediff  =  1.0e-5
 	ediffg = -0.03
-	kpts   =  [2,2,1]
+	kpts   =  [3,3,1]
 	gamma  =  True
 	isym   = -1
 	ispin  =  1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
@@ -135,10 +135,10 @@ if "vasp" in calculator:
 						 encut=encut, ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
 						 isym=isym, ibrion=ibrion, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
 			 			 kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
-	calc_surf_sp  = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
-					     encut=encut_sp, ismear=ismear_sp, sigma=0.2, istart=0, nelmin=nelmin, 
-					     isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
-			 		     kpts=kpts_sp, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree, lorbit=10 )
+	calc_surf_sp = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
+					    encut=encut_sp, ismear=ismear_sp, sigma=0.2, istart=0, nelmin=nelmin, 
+					    isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
+			 		    kpts=kpts_sp, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree, lorbit=10 )
 elif "emt" in calculator:
 	calc_surf_opt = EMT()
 	calc_surf_sp  = calc_surf_opt
@@ -153,11 +153,8 @@ else:
 ## lattice optimization
 lattice, a0 = lattice_info_guess(bulk)
 #
-print("old cell: ", bulk.cell)
 optimize_lattice_constant(bulk, lattice=lattice, a0=a0, xc="PBEsol", 
 						  encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
-print("new cell: ", bulk.cell)
-quit()
 #
 # ------------------------ surface ------------------------
 #
@@ -165,13 +162,6 @@ quit()
 #
 # surface construction
 #
-cell = bulk.get_cell()
-bulk.set_cell(optimized_cell)
-quit()
-#print "cell,before",cell
-#cell = cell // repeat_bulk
-#print "cell,after", cell
-
 surf = surface(bulk, face, nlayer, vacuum=vacuum)
 surf.translate([0, 0, -vacuum])
 
@@ -182,22 +172,16 @@ if alloy and calc_formation_energy:
 	nat = 0
 	e_bulk = 0.0
 	for ielem in [element1, element2]:
-		bulk = make_bulk(ielem, repeat=2)
-		#a1 = get_optimized_lattice_constant(bulk, lattice=lattice, a0=a0, xc="PBEsol", 
-		#									 encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
+		tmpbulk = make_bulk(ielem, repeat=2)
+		optimize_lattice_constant(tmpbulk, lattice=lattice, a0=a0, xc=xc, 
+								  encut=encut, ediff=ediff, ediffg=ediff, npar=npar, nsim=nsim)
 		#
 		# bulk energy for formation energy --- same with alloy surface calculator
 		#
-
-		# optimization
-		bulk.set_calculator(calc_surf_opt)
-		bulk.get_potential_energy()
-
 		# single point
-		bulk.set_calculator(calc_surf_sp)
-		ene = bulk.get_potential_energy()
-
-		ene = ene // len(bulk)
+		tmpbulk.set_calculator(calc_surf_sp)
+		ene = tmpbulk.get_potential_energy()
+		ene /= len(tmpbulk)
 		nat = surf.get_chemical_symbols().count(ielem)
 		e_bulk += ene * nat
 		print("ene:{}".format(ene))
@@ -304,23 +288,17 @@ add_adsorbate(surf, mol, ads_height, position=position, offset=offset)
 #
 # optimization
 #
+surf.set_calculator(calc_surf_opt)
 surf.get_potential_energy()
 #
 # single point
 #
-if "vasp" in calculator:
-	calc_surf_sp = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
-					    encut=encut_sp, ismear=ismear_sp, sigma=0.2, istart=0, nelmin=nelmin, 
-					    isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
-			 		    kpts=kpts_sp, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
-elif "emt" in calculator:
-	calc_surf_sp = EMT()
-
 surf.set_calculator(calc_surf_sp)
 e_tot = surf.get_potential_energy()
 e_ads = e_tot - (e_surf + e_mol)
 #
 print("Adsorption energy:", e_ads)
+print("formation energy:", e_surf-e_bulk)
 #
 # copy vasprun.xml
 #
@@ -334,7 +312,7 @@ if "vasp" in calculator:
 system = element + "_" + face_str
 db_surf.write(surf, system=system, lattice=lattice,
 			  #data={ adsorbate + "-" + position_str: e_ads} )
-			  data={ "E_ads" : e_ads} )
+			  data={ "E_ads" : e_ads, "E_form" : e_surf-e_bulk } )
 #
 # remove working directory
 #

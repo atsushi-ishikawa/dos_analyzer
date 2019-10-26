@@ -65,9 +65,9 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
 
 	return bulk
 
-def get_optimized_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", encut=400, ediff=1.0e-5, ediffg=1.0e-6, npar=1, nsim=1):
+def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", encut=400, ediff=1.0e-5, ediffg=1.0e-6, npar=1, nsim=1):
 	""" 
-	function to return optimized bulk constant
+	function to do bulk optimization
 	"""
 	from ase import Atoms
 	from ase.calculators.vasp import Vasp
@@ -86,9 +86,9 @@ def get_optimized_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", enc
 	prec   = "normal"
 	potim  = 0.1
 	nelmin = 5
-	kpts   = [2,2,2]
+	kpts   = [3,3,3]
 	gamma  = True
-	nsw    = 100
+	nsw    = 200
 	isif   = 6 # or 6---freezing ions
 
 	xc = xc.lower()
@@ -104,7 +104,7 @@ def get_optimized_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", enc
 	calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=1,
 				ismear=1, sigma=0.2, isif=isif, nelmin=nelmin, encut=encut,
 				ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-				kpts=kpts, gamma=gamma, isym=0, npar=npar, nsim=nsim )
+				kpts=kpts, gamma=gamma, isym=0, npar=npar, nsim=nsim, lreal=False )
 
 	bulk.set_calculator(calc)
 	bulk.get_potential_energy()
@@ -113,8 +113,6 @@ def get_optimized_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", enc
 
 	os.chdir(cudir)
  	shutil.rmtree(workdir)
-
-	return cell
 
 def gaussian(x,x0,a,b):
 	"""
@@ -179,7 +177,6 @@ def sort_atoms_by_z(atoms):
 
 	return newatoms
 
-
 def findpeak(x, y):
 	import numpy as np
 	import peakutils 
@@ -207,7 +204,6 @@ def gaussian_fit(x, y, guess):
 
 	return popt
 
-#def sort_peaks(peaks, key="height", split=True, efermi=0.0):
 def sort_peaks(peaks, key="height"):
 	import numpy as np
 	"""
