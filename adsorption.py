@@ -13,7 +13,7 @@ from ase.io import read,write
 
 from vasptools import *
 
-import os, sys, shutil
+import os, sys, shutil, math
 import numpy as np
 
 calculator = "vasp"; calculator = calculator.lower()
@@ -67,6 +67,8 @@ if "vasp" in calculator:
 	# INCAR keywords
 	#
 	xc     = "pbe"
+	ismear = 2
+	sigma  = 0.1
 	prec   = "normal"
 	encut  =  400
 	nelmin =  5
@@ -84,11 +86,12 @@ if "vasp" in calculator:
 	#
 	# single point 
 	#
-	xc_sp     = "pbe"
-	encut_sp  = 400
-	ismear_sp = -5
-	sigma_sp  = 0.1
-	kpts_sp  = [3,3,1]
+	xc_sp     = xc
+	encut_sp  = encut
+	ismear_sp = ismear
+	sigma_sp  = sigma
+	kpts_sp   = kpts
+	kpts_bulk_sp = [3,3,3]
 
 	npar = 18 # 18 for ito
 	nsim = 18
@@ -120,25 +123,24 @@ shutil.copy("../vdw_kernel.bindat" , ".")
 # database to save data
 #
 surf_json = "surf_data.json"
-# ads_json  = "ads_data.json"
-
 surf_json = os.path.join(cudir, surf_json)
-# ads_json  = os.path.join(cudir, ads_json)
-
 db_surf   = connect(surf_json)
-
 #
 # Set calculator here. Different levels for optimization and single point (DOS)
 #
 if "vasp" in calculator:
 	calc_surf_opt = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
-						 encut=encut, ismear=1, sigma=0.2, istart=0, nelmin=nelmin, 
+						 encut=encut, ismear=ismear, sigma=smear, istart=0, nelmin=nelmin, 
 						 isym=isym, ibrion=ibrion, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
 			 			 kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
-	calc_surf_sp = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
-					    encut=encut_sp, ismear=ismear_sp, sigma=0.2, istart=0, nelmin=nelmin, 
-					    isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
-			 		    kpts=kpts_sp, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree, lorbit=10 )
+	calc_surf_sp  = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
+					     encut=encut_sp, ismear=ismear_sp, sigma=sigma_sp, istart=0, nelmin=nelmin, 
+					     isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
+			 		     kpts=kpts_sp, gamma=gamma, npar=npar, nsim=nsim, lreal=True, lorbit=10 )
+	calc_bulk_sp  = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
+					     encut=encut_sp, ismear=ismear_sp, sigma=sigma_sp, istart=0, nelmin=nelmin, 
+					     isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
+			 		     kpts=kpts_bulk_sp, gamma=gamma, npar=npar, nsim=nsim, lreal=True)
 elif "emt" in calculator:
 	calc_surf_opt = EMT()
 	calc_surf_sp  = calc_surf_opt
@@ -155,6 +157,8 @@ lattice, a0 = lattice_info_guess(bulk)
 #
 optimize_lattice_constant(bulk, lattice=lattice, a0=a0, xc="PBEsol", 
 						  encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
+bulk.set_calculator(calc_surf_sp)
+e_bulk = bulk.get_potential_energy()
 #
 # ------------------------ surface ------------------------
 #
@@ -170,7 +174,7 @@ surf = sort_atoms_by_z(surf)
 calc_formation_energy = True
 if alloy and calc_formation_energy:
 	nat = 0
-	e_bulk = 0.0
+	e_bulk_elem = 0.0
 	for ielem in [element1, element2]:
 		tmpbulk = make_bulk(ielem, repeat=2)
 		optimize_lattice_constant(tmpbulk, lattice=lattice, a0=a0, xc=xc, 
@@ -179,15 +183,11 @@ if alloy and calc_formation_energy:
 		# bulk energy for formation energy --- same with alloy surface calculator
 		#
 		# single point
-		tmpbulk.set_calculator(calc_surf_sp)
+		tmpbulk.set_calculator(calc_bulk_sp)
 		ene = tmpbulk.get_potential_energy()
 		ene /= len(tmpbulk)
 		nat = surf.get_chemical_symbols().count(ielem)
-		e_bulk += ene * nat
-		print("ene:{}".format(ene))
-		print("nat:{}".format(nat))
-
-	print("bulk_energy:", e_bulk)
+		e_bulk_elem += ene * nat
 #
 # setting tags for relax/freeze
 #
@@ -231,11 +231,12 @@ surf.get_potential_energy()
 
 # single point
 surf.set_calculator(calc_surf_sp)
-e_surf = surf.get_potential_energy()
+e_slab = surf.get_potential_energy()
 
-print("surface number:",len(surf))
-print("e_surf:{}".format(e_surf))
-print("formation energy:", e_surf-e_bulk)
+# surface energy
+a,b,c,alpha,beta,gamma = surf.get_cell_lengths_and_angles()
+surf_area = a*b*math.sin(math.radians(gamma))
+e_surf = (e_slab - (len(surf)/len(bulk))*e_bulk) / (2*surface_area)
 
 if "vasp" in calculator:
 	#
@@ -295,10 +296,11 @@ surf.get_potential_energy()
 #
 surf.set_calculator(calc_surf_sp)
 e_tot = surf.get_potential_energy()
-e_ads = e_tot - (e_surf + e_mol)
+e_ads = e_tot - (e_slab + e_mol)
 #
-print("Adsorption energy:", e_ads)
-print("formation energy:", e_surf-e_bulk)
+print("Adsorption energy: ", e_ads)
+print("Surface energy:    ", e_surf)
+print("Formation energy:  ", e_slab - e_bulk_elem)
 #
 # copy vasprun.xml
 #
@@ -312,7 +314,7 @@ if "vasp" in calculator:
 system = element + "_" + face_str
 db_surf.write(surf, system=system, lattice=lattice,
 			  #data={ adsorbate + "-" + position_str: e_ads} )
-			  data={ "E_ads" : e_ads, "E_form" : e_surf-e_bulk } )
+			  data={ "E_ads" : e_ads, "E_form" : e_slab-e_bulk_elem, "E_surf" : e_surf } )
 #
 # remove working directory
 #
