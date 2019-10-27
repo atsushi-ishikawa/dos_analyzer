@@ -77,7 +77,7 @@ if "vasp" in calculator:
 	encut  =  400
 	nelmin =  5
 	potim  =  0.10
-	nsw    =  20
+	nsw    =  10
 	ediff  =  1.0e-5
 	ediffg = -0.03
 	kpts   =  [2,2,1]
@@ -241,7 +241,7 @@ e_slab = surf.get_potential_energy()
 # surface energy
 a,b,c,alpha,beta,gamma = surf.get_cell_lengths_and_angles()
 surf_area = a*b*math.sin(math.radians(gamma))
-e_surf = (e_slab - (len(surf)/len(bulk))*e_bulk) / (2.0*surface_area)
+e_surf = (e_slab - (len(surf)/len(bulk))*e_bulk) / (2.0*surf_area)
 
 if "vasp" in calculator:
 	#
