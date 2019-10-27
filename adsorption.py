@@ -258,6 +258,7 @@ if "vasp" in calculator:
 	#
 	# do lobster and copy COHP file
 	#
+	make_lobsterin()
 	os.system("lobster")
 	cohpfile  = "COHPCAR_" + element + "_" + face_str
 	cohpfile  = os.path.join(cudir, cohpfile)

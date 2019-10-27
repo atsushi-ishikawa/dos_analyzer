@@ -270,3 +270,13 @@ def calc_edge(numpeaks, ene, pdos):
 
 	return upper_edge, lower_edge
 
+def make_lobsterin():
+	"""
+	make input file for lobster (lobsterin) for alloy systems
+	"""
+	f = open("lobsterin", "w")
+	str = ["COHPstartEnergy -20", "COHPendEnergy 20", "basisSet pbeVaspFit2015", "includeOrbitals spd", "cohpbetween atom 1 and atom 2"]
+	str = " \n".join(str)
+	f.write(str)
+	f.close()
+
