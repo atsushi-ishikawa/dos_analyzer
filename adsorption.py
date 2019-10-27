@@ -17,6 +17,10 @@ import os, sys, shutil, math
 import numpy as np
 
 calculator = "vasp"; calculator = calculator.lower()
+
+# Whether to calculate formation energy of BULK ALLOY from its composite metals.
+calc_formation_energy = True
+
 #
 # --- Determine lattice constant ---
 #
@@ -76,7 +80,7 @@ if "vasp" in calculator:
 	nsw    =  20
 	ediff  =  1.0e-5
 	ediffg = -0.03
-	kpts   =  [3,3,1]
+	kpts   =  [2,2,1]
 	gamma  =  True
 	isym   = -1
 	ispin  =  1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
@@ -130,7 +134,7 @@ db_surf   = connect(surf_json)
 #
 if "vasp" in calculator:
 	calc_surf_opt = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
-						 encut=encut, ismear=ismear, sigma=smear, istart=0, nelmin=nelmin, 
+						 encut=encut, ismear=ismear, sigma=sigma, istart=0, nelmin=nelmin, 
 						 isym=isym, ibrion=ibrion, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
 			 			 kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
 	calc_surf_sp  = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
@@ -155,23 +159,11 @@ else:
 ## lattice optimization
 lattice, a0 = lattice_info_guess(bulk)
 #
-optimize_lattice_constant(bulk, lattice=lattice, a0=a0, xc="PBEsol", 
+optimize_lattice_constant(bulk, lattice=lattice, a0=a0, xc=xc,
 						  encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
 bulk.set_calculator(calc_surf_sp)
 e_bulk = bulk.get_potential_energy()
-#
-# ------------------------ surface ------------------------
-#
-# load lattice constant form bulk calculaiton database
-#
-# surface construction
-#
-surf = surface(bulk, face, nlayer, vacuum=vacuum)
-surf.translate([0, 0, -vacuum])
 
-surf = sort_atoms_by_z(surf)
-
-calc_formation_energy = True
 if alloy and calc_formation_energy:
 	nat = 0
 	e_bulk_elem = 0.0
@@ -186,8 +178,21 @@ if alloy and calc_formation_energy:
 		tmpbulk.set_calculator(calc_bulk_sp)
 		ene = tmpbulk.get_potential_energy()
 		ene /= len(tmpbulk)
-		nat = surf.get_chemical_symbols().count(ielem)
+		#nat = surf.get_chemical_symbols().count(ielem)
+		nat = bulk.get_chemical_symbols().count(ielem)
 		e_bulk_elem += ene * nat
+#
+# ------------------------ surface ------------------------
+#
+# load lattice constant form bulk calculaiton database
+#
+# surface construction
+#
+surf = surface(bulk, face, nlayer, vacuum=vacuum)
+surf.translate([0, 0, -vacuum])
+
+surf = sort_atoms_by_z(surf)
+
 #
 # setting tags for relax/freeze
 #
@@ -236,7 +241,7 @@ e_slab = surf.get_potential_energy()
 # surface energy
 a,b,c,alpha,beta,gamma = surf.get_cell_lengths_and_angles()
 surf_area = a*b*math.sin(math.radians(gamma))
-e_surf = (e_slab - (len(surf)/len(bulk))*e_bulk) / (2*surface_area)
+e_surf = (e_slab - (len(surf)/len(bulk))*e_bulk) / (2.0*surface_area)
 
 if "vasp" in calculator:
 	#
@@ -250,6 +255,13 @@ if "vasp" in calculator:
 	#
 	efermi = calc_surf_sp.read_fermi()
 	print("fermi energy:", efermi)
+	#
+	# do lobster and copy COHP file
+	#
+	os.system("lobster")
+	cohpfile  = "COHPCAR_" + element + "_" + face_str
+	cohpfile  = os.path.join(cudir, cohpfile)
+	os.system("cp COHPCAR.lobster %s" % cohpfile)
 #
 # ------------------------ adsorbate ------------------------
 #
