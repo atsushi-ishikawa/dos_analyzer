@@ -280,3 +280,20 @@ def make_lobsterin():
 	f.write(str)
 	f.close()
 
+def read_cohp(cohpfile="COHPCAR.lobster"):
+	f = open(cohpfile, "r")
+	f.readline() # skip first
+	ndos = int(f.readline().split()[2])
+
+	[f.readline() for i in range(2)]
+
+	ene  = []
+	cohp = []
+
+	for i in range(ndos):
+		tmp = f.readline().split()
+		ene.append( float(tmp[0]))
+		cohp.append(float(tmp[1]))
+	
+	f.close()
+	return ene,cohp
