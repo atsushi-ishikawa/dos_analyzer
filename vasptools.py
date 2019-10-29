@@ -112,7 +112,7 @@ def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", encut=40
 	cell = bulk.cell # optimized cell size
 
 	os.chdir(cudir)
- 	shutil.rmtree(workdir)
+	shutil.rmtree(workdir)
 
 def gaussian(x,x0,a,b):
 	"""
@@ -201,8 +201,12 @@ def gaussian_fit(x, y, guess):
 	popt, pcov = curve_fit(fit_func, x, y, p0=guess)
 
 	fit = fit_func(x,*popt)
+	residual = y - fit
+	rss = np.sum(residual**2) # residual sum of squares
+	tss = np.sum( (y-np.mean(y))**2 ) # total sum of squares
+	r2 = 1 - (rss / tss)
 
-	return popt
+	return popt,rss,r2
 
 def sort_peaks(peaks, key="height"):
 	import numpy as np
@@ -211,28 +215,12 @@ def sort_peaks(peaks, key="height"):
 	"""
 	dtype = [ ("position",float), ("height",float), ("width",float) ]
 
-	#if split:
-	#	occ_peaks = np.array([], dtype=dtype)
-	#	vir_peaks = np.array([], dtype=dtype)
-	#else:
 	newpeaks = np.array([], dtype=dtype)
 
 	for i in range(0, len(peaks), 3):
 		peak = np.array(( peaks[i],peaks[i+1],peaks[i+2] ), dtype=dtype)
-		#if split:
-		#	if peaks[i] <= efermi:
-		#		occ_peaks = np.append(occ_peaks, peak)
-		#	else:
-		#		vir_peaks = np.append(vir_peaks, peak)
-		#else:
 		newpeaks = np.append(newpeaks, peak)
 
-	#if split:
-	#	occ_peaks = np.sort(occ_peaks, order=key)
-	#	occ_peaks = occ_peaks[::-1]
-	#	vir_peaks = np.sort(vir_peaks, order=key)
-	#	return occ_peaks, vir_peaks
-	#else:
 	newpeaks = np.sort(newpeaks, order=key)
 	newpeaks = newpeaks[::-1] # sort in descending order
 	return newpeaks
@@ -297,3 +285,4 @@ def read_cohp(cohpfile="COHPCAR.lobster"):
 	
 	f.close()
 	return ene,cohp
+
