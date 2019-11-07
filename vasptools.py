@@ -253,8 +253,8 @@ def calc_edge(numpeaks, ene, pdos):
 
 	upper_edge = upper_edge[0:numpeaks]
 	lower_edge = lower_edge[0:numpeaks]
-	upper_edge = upper_edge[::-1]
-	lower_edge = lower_edge[::-1]
+	#upper_edge = upper_edge[::-1]
+	#lower_edge = lower_edge[::-1]
 
 	return upper_edge, lower_edge
 

@@ -12,7 +12,7 @@ os.system('rm %s' % jsonfile)
 name_list = os.listdir("./")
 for name in name_list:
 	if "DOSCAR" in name:
-		#name = name.replace("DOSCAR_","")
+		name = name.replace("DOSCAR_","")
 		name = name + " s p d"
 		os.system('python analyze_dos2.py ' + str(numpeaks) + ' ' + name)
 
@@ -37,10 +37,13 @@ orbital = ["s","p","d"]
 keys = []
 #keys = ["height","position","width"]
 #keys = ["height","position","width","center"]
+
+keys = ["position_occ"]
 #keys = ["position_occ", "height_occ", "width_occ"]
-keys = ["position_occ", "position_vir", "height_occ", "height_vir", "width_occ", "width_vir"]
+#keys = ["position_occ", "height_occ", "width_occ", "area_occ"]
+#keys = ["position_occ", "height_occ", "width_occ", "upper_edge"]
+#keys = ["position_occ", "position_vir", "height_occ", "height_vir", "width_occ", "width_vir"]
 #keys = ["position_occ", "position_vir", "height_occ", "height_vir", "width_occ", "width_vir", "area_occ", "area_vir"]
-#keys = ["position_occ"]
 #keys = ["position_occ", "upper_edge"]
 #keys = ["position_occ", "upper_edge", "upper_edge_site", "upper_edge_surf"]
 #keys = ["position_occ", "position_vir", "height_occ", "height_vir", "width_occ", "width_vir", "area_occ", "area_vir", "upper_edge", "lower_edge"]
@@ -57,6 +60,11 @@ for i in orbital:
 		for peak in range(numpeaks):
 			df[i + '-' + j + str(peak+1)] = tmp[peak]
 
+col = df.columns.tolist()
+col.remove("E_surf"); col.append("E_surf")
+col.remove("E_form"); col.append("E_form")
+df = df[col]
+
 # convert to float
 for i in df.columns:
 	if i!="system":
@@ -65,21 +73,25 @@ for i in df.columns:
 df.set_index("system")
 
 # delete system tag
-del df["system"]
+#del df["system"]
+#del df["E_form"]
+#del df["E_surf"]
 
 df = df.fillna(0.0)
 
 # dropping strange values
 print("dropping strange values...before:%4d" % len(df))
 
-keys = []
+#keys = []
 #keys = ["-height_occ", "-width_occ"]
+keys = ["position_occ"]
 for i in orbital:
 	for j in keys:
 		for k in range(1,numpeaks+1):
-			key = i + j + str(k)
+			key = i + "-" + j + str(k)
 			#if k==1:
-			df = df[df[key] >  0.0] # zero is not allowed in the first peak -- at least one peak!
+			print(key)
+			df = df[df[key] <  0.0] # zero is not allowed in the first peak -- at least one peak!
 			#else:
 			#	df = df[df[key] >= 0.0]
 
