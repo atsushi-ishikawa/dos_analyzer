@@ -20,13 +20,12 @@ if alloy:
 		element1 = dict[str(i)]["element"]
 		for j in range(i+1,len(dict)):
 			element2 = dict[str(j)]["element"]
-			
-			# --- change by 50%
+
+			# --- change by 50% --> gives 21 systems w.o. pure metals
 			#for comp1 in range(50,100,50): # start, end, diff
 
 			# --- change by 25% --> gives 63 systems w.o. pure metals
-			first = False
-			for comp1 in range(25,100,25): # start, end, diff
+			#for comp1 in range(25,100,25): # start, end, diff
 
 			# --- change by 10%
 			#first = False
@@ -34,8 +33,8 @@ if alloy:
 			#for comp1 in range(50,100,10): # start, end, diff # part2
 
 			# --- change by 5%
-			#first = False
-			#for comp1 in range(5,25,5):   # start, end, diff # part1
+			first = True
+			for comp1 in range(5,25,5):   # start, end, diff # part1
 			#for comp1 in range(25,50,5):  # start, end, diff # part2
 			#for comp1 in range(50,75,5):  # start, end, diff # part3
 			#for comp1 in range(75,100,5): # start, end, diff # part4

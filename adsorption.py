@@ -44,9 +44,9 @@ else:
 face = (1,1,1) ; face_str = ",".join( map(str,face) ).replace(",","")
 
 position_str = "atop" # atop, hcp, fcc
-adsorbate = "O"
+#adsorbate = "O"
 #adsorbate = "CO"
-#adsorbate = "CH3"
+adsorbate = "CH3"
 
 if adsorbate=="CO":
 	ads_height = 1.6
@@ -76,10 +76,10 @@ if "vasp" in calculator:
 	encut  =  400
 	nelmin =  5
 	potim  =  0.10
-	nsw    =  10
+	nsw    =  200
 	ediff  =  1.0e-5
-	ediffg = -0.03
-	kpts   =  [2,2,1]
+	ediffg = -0.05
+	kpts   =  [3,3,1]
 	gamma  =  True
 	isym   = -1
 	ispin  =  1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
@@ -91,9 +91,9 @@ if "vasp" in calculator:
 	#
 	xc_sp     = xc
 	encut_sp  = encut
-	ismear_sp = ismear
-	sigma_sp  = sigma
-	kpts_sp   = kpts
+	ismear_sp = -5
+	sigma_sp  = 0.1
+	kpts_sp   = [5,5,1]
 
 	npar = 18 # 18 for ito
 	nsim = 18
@@ -161,6 +161,7 @@ bulk.set_calculator(calc_bulk_sp)
 
 e_bulk = bulk.get_potential_energy()
 
+e_form = 0.0
 if alloy and calc_formation_energy:
 	nat = 0
 	e_bulk_component = 0.0
@@ -179,8 +180,8 @@ if alloy and calc_formation_energy:
 		nat = bulk.get_chemical_symbols().count(ielem)
 		e_bulk_component += ene * nat
 
-# formation energy of bulk alloy from its component
-e_form = e_bulk - e_bulk_component
+	# formation energy of bulk alloy from its component
+	e_form = e_bulk - e_bulk_component
 #
 # ------------------------ surface ------------------------
 #
@@ -260,11 +261,10 @@ if "vasp" in calculator:
 	# do lobster and copy COHP file
 	#
 	make_lobsterin()
-	os.system("/home/usr6/m70286a/lobster/lobster-3.2.0/lobster-3.2.0")
+	os.system("env OMP_NUM_THREADS=%d /home/usr6/m70286a/lobster/lobster-3.2.0/lobster-3.2.0" % npar)
 	cohpfile  = "COHPCAR_" + element + "_" + face_str
 	cohpfile  = os.path.join(cudir, cohpfile)
 	os.system("cp COHPCAR.lobster %s" % cohpfile)
-	quit()
 #
 # ------------------------ adsorbate ------------------------
 #
@@ -328,5 +328,5 @@ db_surf.write(surf, system=system, lattice=lattice,
 #
 # remove working directory
 #
-###### shutil.rmtree(workdir)
+shutil.rmtree(workdir)
 
