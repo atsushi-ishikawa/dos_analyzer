@@ -95,8 +95,8 @@ if "vasp" in calculator:
 	sigma_sp  = 0.1
 	kpts_sp   = [5,5,1]
 
-	npar = 18 # 18 for ito
-	nsim = 18
+	npar = 10 # 18 for ito
+	nsim = 10
 	#
 	# xc set
 	#
