@@ -20,6 +20,8 @@ calculator = "vasp"; calculator = calculator.lower()
 
 # Whether to calculate formation energy of BULK ALLOY from its component metals.
 calc_formation_energy = True
+do_cohp = True
+lobster = "/lustre0/home/n22240/lobster/lobster-3.2.0/lobster-3.2.0"
 #
 # --- Determine lattice constant ---
 #
@@ -260,11 +262,12 @@ if "vasp" in calculator:
 	#
 	# do lobster and copy COHP file
 	#
-	make_lobsterin()
-	os.system("env OMP_NUM_THREADS=%d /home/usr6/m70286a/lobster/lobster-3.2.0/lobster-3.2.0" % npar)
-	cohpfile  = "COHPCAR_" + element + "_" + face_str
-	cohpfile  = os.path.join(cudir, cohpfile)
-	os.system("cp COHPCAR.lobster %s" % cohpfile)
+	if do_cohp:
+		make_lobsterin()
+		os.system("env OMP_NUM_THREADS=%d %s" % (npar, lobster))
+		cohpfile  = "COHPCAR_" + element + "_" + face_str
+		cohpfile  = os.path.join(cudir, cohpfile)
+		os.system("cp COHPCAR.lobster %s" % cohpfile)
 #
 # ------------------------ adsorbate ------------------------
 #
