@@ -2,33 +2,53 @@ from ase import Atoms, Atom
 from ase.calculators.vasp import VaspDos
 import sys
 import numpy as np
+import math
 from vasptools import *
 from ase.db import connect
 from vasptools import fit_func
 from vasptools import get_efermi_from_doscar
-
 from ase.dft import get_distribution_moment
+
+import matplotlib.pyplot as plt
 #
 # Usage:
 #  python analyze.dos 1 DOSCAR_Au_111 s p d
 #
-json  = "surf_data_alloy.json"
+do_cohp = False
+check   = False
+
+normalize_height  = True
+relative_to_fermi = False
+
+json = "surf_data.json"
 db = connect(json)
 
-argvs  = sys.argv
+argvs    = sys.argv
 numpeaks = int(argvs[1])
-doscar = argvs[2]
-system = doscar.split("_")[1] + "_" + doscar.split("_")[2]
+system   = argvs[2]
+doscar   = "DOSCAR_" + system
+cohpcar  = "COHPCAR_" + system
 
-# smaller the broader. 0.1 gives broaden peak -- for singple peak use
-if numpeaks==1:
-	sigma = 0.1
-elif numpeaks==2:
-	sigma = 2.0
-else:
-	sigma = 5.0
+print(" ----- %s ----- " % system)
 
-check = False
+#if numpeaks==2:
+sigma = 100.0 # 100 -- d-dominant but not good learning curve # 1.0,2.0 -- d not dominant
+
+id  = db.get(system=system).id
+obj = db[id]
+atoms = db.get_atoms(id=id) # surface + adsorbate
+#
+# get coordinating atom
+#
+adsorbate = "C"
+coord_ind = []
+adsorbate_ind = atoms.get_chemical_symbols().index(adsorbate)
+li = [atoms.get_distance(adsorbate_ind, i) for i in range(len(atoms)) ]
+li = li[:adsorbate_ind] # limit on surface
+li = list(map(lambda x : 1.0e3 if x<1.0e-3 else x, li))
+coord_ind.append(np.argmin(li))
+coord_num = atoms[coord_ind].get_atomic_numbers()[0] # atomic number of coordinating atom
+#print("coordinating to %s" % atoms[coord_ind].get_chemical_symbols())
 
 orbitals = []
 norbs = len(argvs) - 3 # number of orbitals 
@@ -51,38 +71,63 @@ dos = VaspDos(doscar=doscar)
 ene  = dos.energy
 tdos = dos.dos
 
-margin = 1.0
-
-ene2 = list(filter(lambda x : x <= efermi+margin, ene))
-old_last = len(ene)
-new_last = len(ene2)
-ene = ene2.copy()
-
-id  = db.get(system=system).id
-obj = db[id]
-
 system  = obj.system # already know!
 lattice = obj.lattice
 data    = obj.data
+#
+# limit analysis only for occupied part
+#
+#margin = 1.0
+margin = 0.0
+ene = list(filter(lambda x : x <= efermi+margin, ene))
 
 for orbital in orbitals:
-	tmppdos = np.zeros(len(ene))
-	pdos    = np.zeros(len(ene))
+	#
+	# get pdos for total system
+	#
+	pdos_tot = np.zeros(len(ene))
+	tmpdos   = np.zeros(len(ene))
 	for i in range(0, natom):
-		tmppdos = tmppdos + dos.site_dos(i,orbital)[:len(ene)]
-		#tmppdos = tmppdos + dos.site_dos(i, orbital)
-
-	pdos = tmppdos[:len(ene)]
-	pdos = smear_dos(ene, pdos, sigma=sigma)
-	#pdos = pdos/max(pdos) # relative
+		tmpdos = tmpdos + dos.site_dos(i,orbital)[:len(ene)]
+	tmpdos = tmpdos[:len(ene)]
+	tmpdos = tmpdos/np.max(tmpdos) if normalize_height else tmpdos
+	pdos_tot = smear_dos(ene, tmpdos, sigma=sigma)
+	integ    = get_distribution_moment(ene, tmpdos, order=0)
+	center   = get_distribution_moment(ene, tmpdos, order=1)
+	second   = get_distribution_moment(ene, tmpdos, order=2)
+	third    = get_distribution_moment(ene, tmpdos, order=3)
+	fourth   = get_distribution_moment(ene, tmpdos, order=4)
+	#
+	# get pdos for surface layer
+	#
+	pdos_surf = np.zeros(len(ene))
+	tmpdos    = np.zeros(len(ene))
+	for i in range(48,64):
+		tmpdos = tmpdos + dos.site_dos(i, orbital)[:len(ene)]
+	tmpdos     = tmpdos[:len(ene)]
+	tmpdos     = tmpdos/np.max(tmpdos) if normalize_height else tmpdos
+	pdos_surf  = smear_dos(ene, tmpdos, sigma=sigma)
+	integ_surf  = get_distribution_moment(ene, tmpdos, order=0)
+	center_surf = get_distribution_moment(ene, tmpdos, order=1)
+	#
+	# get pdos for adsorbating atom
+	#
+	pdos_site = np.zeros(len(ene))
+	tmpdos    = np.zeros(len(ene))
+	for i in coord_ind:
+		tmpdos = tmpdos + dos.site_dos(i, orbital)[:len(ene)]
+	tmpdos      = tmpdos[:len(ene)]
+	tmpdos      = tmpdos/np.max(tmpdos) if normalize_height else tmpdos
+	pdos_site   = smear_dos(ene, tmpdos, sigma=sigma)
+	integ_site  = get_distribution_moment(ene, tmpdos, order=0)
+	center_site = get_distribution_moment(ene, tmpdos, order=1)
+	#
+	# analyze dos by fitting Gaussian
+	#
+	pdos  = pdos_tot # specify dos to analyze
 	peaks = findpeak(ene, pdos)
-	center = [get_distribution_moment(ene, tmppdos, order=1)]
-	#center = [get_distribution_moment(ene, tmppdos, order=1) - efermi]
 
-	for i in peaks:
-		print("%s  %6.3f" % (orbital,ene[i]-efermi))
-
-	width = 0.1 # guess for the Gaussian fit
+	width = 1.0*(1/sigma**0.5) # guess for the Gaussian fit
 	params = []
 	for idx in peaks:
 		params.append(ene[idx])
@@ -93,75 +138,164 @@ for orbital in orbitals:
 	#
 	try:
 		params,rss,r2 = gaussian_fit(ene, pdos, params)
-		#peaks  = sort_peaks(params, key="height")
-		peaks  = sort_peaks(params, key="position")
-		print("R^2 = %5.3f" % r2)
+		peaks = sort_peaks(params, key="height")
+		#peaks = sort_peaks(params, key="position")
+		print("%s compoent R^2 = %5.3f" % (orbital, r2))
 	except:
 		params = []
 		r2 = 0.0
 		peaks  = [(0,0,0) for i in range(numpeaks)]
 
 	# quit if R^2 is too low
-	if r2 < 0.8:
-		print("fitting failed ... quit")
-		params = gaussian_fit(ene, pdos, params)
-		#peaks  = sort_peaks(params, key="height")
-		peaks  = sort_peaks(params, key="position")
-	except:
-		params = []
+	if r2 < 0.98:
+		print("fitting failed: r2 (%5.3f) is too low ... quit" % r2)
 		peaks  = [(0,0,0) for i in range(numpeaks)]
+	#
+	# sort peaks and limit to numpeaks
+	#
+	peaks = peaks[0:numpeaks]
+	tmp = []
+	for peak in peaks:
+		tmp.append(peak[0]); tmp.append(peak[1]); tmp.append(peak[2])
+	peaks = sort_peaks(tmp, key="position")
+	#peaks = sort_peaks(tmp, key="height")
+	if relative_to_fermi:
+		peaks = list(map(lambda x : (x[0]-efermi,x[1],x[2]), peaks))
+
+	occ_peaks = list(filter(lambda x : x[0] <  efermi+margin, peaks))
+	vir_peaks = list(filter(lambda x : x[0] >= efermi+margin, peaks))
+
+	# zero padding upto numpeaks
+	occ_peaks = occ_peaks + [(0,0,0)]*(numpeaks - len(occ_peaks))
+	vir_peaks = vir_peaks + [(0,0,0)]*(numpeaks - len(vir_peaks))
+	#
+	# take upper edge by inverse Hilbert transform
+	#
+	upper_edge, lower_edge = calc_edge(numpeaks, ene, pdos)
+	upper_edge_surf, lower_edge_surf = calc_edge(numpeaks, ene, pdos_surf)
+	upper_edge_site, lower_edge_site = calc_edge(numpeaks, ene, pdos_site)
+	#edge = np.hstack( (upper_edge, lower_edge) )
+	if do_cohp:
+		ene2, cohp = read_cohp(cohpcar)
+		ene2 = np.array(ene2)+efermi
+
+		cohp_pos = np.array( list(map(lambda x: x if x > 0.0 else 0.0, cohp)) )
+		cohp_neg = np.array( list(map(lambda x: x if x < 0.0 else 0.0, cohp)) )
+
+		cohp_pos = smear_dos(ene2, cohp_pos, sigma=sigma)
+		cohp_neg = smear_dos(ene2, cohp_neg, sigma=sigma)
+
+		# find peak for pos
+		peaks = findpeak(ene2, cohp_pos)
+		maxind = peaks[np.argmax(cohp_pos[peaks])] # highest peak
+		#maxind = peaks[-1]  most positive peak
+		cohp_pos_peak = ene2[maxind]
+
+		# find peak for neg
+		peaks  = findpeak(ene2, cohp_neg)
+		minind = peaks[np.argmin(cohp_neg[peaks])] # highest peak
+		#minind = peaks[-1]  most positive peak
+		cohp_neg_peak = ene2[minind]
+
+		cohp_pos_center = get_distribution_moment(ene2, cohp_pos, order=1)
+		cohp_neg_center = get_distribution_moment(ene2, cohp_neg, order=1)
+	#
+	# occupied and virtual
+	#
+	position_occ = [] ; height_occ = [] ; width_occ = [] ; area_occ = []
+	position_vir = [] ; height_vir = [] ; width_vir = [] ; area_vir = []
+
+	for peak in occ_peaks:
+		position_occ.append(peak[0])
+		height_occ.append(peak[1])
+		width_occ.append(peak[2])
+		area_occ.append(peak[1]*peak[2]*np.sqrt(np.pi)) # integral of Gauss function = height * sqrt(pi/a) where a = 1/width^2
+	for peak in vir_peaks:
+		position_vir.append(peak[0])
+		height_vir.append(peak[1])
+		width_vir.append(peak[2])
+		area_vir.append(peak[1]*peak[2]*np.sqrt(np.pi))
 	#
 	# if you want to check by eye
 	#
 	if check:
 		import matplotlib.pylab as plt
 		import seaborn as sb
+		from scipy import fftpack
 
-		print("height  : ", end="")
-		for i in range(numpeaks):
-			print("%12.6f" % peaks[i][1], end=" ")
-		print("")
-		print("position: ", end="")
-		for i in range(numpeaks):
-			print("%12.6f" % peaks[i][0], end=" ");
-		print("")
+		#print("upper edge:{}".format(upper_edge))
+		#print("lower edge:{}".format(lower_edge))
 
-		fit = fit_func(ene,*params)
+		fit = fit_func(ene, *params)
+		ih  = fftpack.ihilbert(pdos)
+
 		sb.set(context='notebook', style='darkgrid', palette='deep', font='sans-serif', font_scale=1, color_codes=False, rc=None)
-		plt.plot(ene,fit,  label="fitted")
-		plt.plot(ene,pdos, label="original")
+		plt.plot(ene, fit,  label="fitted")
+		plt.plot(ene, pdos, label="original")
+		plt.vlines(position_occ, 0, np.max(pdos), linestyle="dashed", linewidth=0.5)
+		#plt.plot(ene, ih, label="inverse Hilbert")
+		plt.xlim([min(ene), max(ene)+margin])
+
 		plt.legend()
 		plt.show()
-	#
-	# adding to database
-	#
-	position = [] ; height = [] ; width = []
 
-	for peak in peaks:
-		position.append(peak[0])
-		#position.append(peak[0]-efermi)
-		height.append(peak[1])
-		width.append(peak[2])
+		if do_cohp:
+			cohp_smeared = smear_dos(ene2, cohp, sigma=sigma)
+			plt.plot(ene2, cohp_smeared, label="COHP")
+			plt.legend()
+			plt.show()
 	#
-	# sort by position : only useful in numpeaks = 2
+	# write to database
 	#
-	#if numpeaks==2 and position[0] > position[1]:
-	#if numpeaks==2 and height[1] > height[0]:
-	#	tmp1 = position[0];	position[0] = position[1];  position[1] = tmp1
-	#	tmp2 = height[0];	height[0]   = height[1];	height[1]   = tmp2
-	#	tmp3 = width[0];	width[0]    = width[1];		width[1]    = tmp3
+	data.update({ orbital + "-" + "position_occ" : position_occ})
+	data.update({ orbital + "-" + "height_occ"   : height_occ})
+	data.update({ orbital + "-" + "width_occ"    : width_occ})
+	#data.update({ orbital + "-" + "area_occ"     : area_occ})
 
-	data.update({ orbital + "-" + "position" : position})
-	data.update({ orbital + "-" + "height"   : height})
-	data.update({ orbital + "-" + "width"    : width})
+	#data.update({ orbital + "-" + "position_vir" : position_vir})
+	#data.update({ orbital + "-" + "height_vir"   : height_vir})
+	#data.update({ orbital + "-" + "width_vir"    : width_vir})
 
-	#data.update({ orbital + "-" + "center"   : center})
+	#data.update({ orbital + "-" + "area_vir"     : area_vir})
 
-	atoms = db.get_atoms(id=id)
+	#upper_edge -= efermi
+	#lower_edge -= efermi
+
+	#data.update({ orbital + "-" + "upper_edge" : upper_edge})
+	#data.update({ orbital + "-" + "lower_edge" : lower_edge})
+	#data.update({ orbital + "-" + "upper_edge_site" : upper_edge_site})
+	#data.update({ orbital + "-" + "upper_edge_surf" : upper_edge_surf})
+
+	#data.update({ orbital + "-" + "center"      : center})
+	#data.update({ orbital + "-" + "center_surf" : center_surf})
+	#data.update({ orbital + "-" + "center_site" : center_site})
+	#data.update({ orbital + "-" + "integ"      : integ})
+	#data.update({ orbital + "-" + "integ_surf" : integ_surf})
+	#data.update({ orbital + "-" + "integ_site" : integ_site})
+	#data.update({ orbital + "-" + "second"      : second})
+	#data.update({ orbital + "-" + "third"       : third})
+	#data.update({ orbital + "-" + "fourth"      : fourth})
+
+#a,b,c,alpha,beta,gamma = atoms.get_cell_lengths_and_angles()
+#surf_area = a*b*math.sin(math.radians(gamma))
+#volume = atoms.get_volume()
+#data.update({"surf_area" : surf_area})
+#data.update({"volume" : volume})
+#atom_num = atoms.numbers.sum()
+#data.update({"atomic_numbers" : atom_num})
+#data.update({"atomic_number_site" : coord_num})
+
+if do_cohp:
+	#data.update({"cohp_pos_center" : cohp_pos_center})
+	#data.update({"cohp_neg_center" : cohp_neg_center})
+	data.update({"cohp_pos_peak" : cohp_pos_peak})
+	data.update({"cohp_neg_peak" : cohp_neg_peak})
 
 db2 = connect("tmpout.json")
-db2.write(atoms, system=system, lattice=lattice, data=data, efermi=efermi)
-#db2.write(atoms, system=system, lattice=lattice, data=data)
+if relative_to_fermi:
+	db2.write(atoms, system=system, lattice=lattice, data=data)
+else:
+	db2.write(atoms, system=system, lattice=lattice, data=data, efermi=efermi)
 
 print("DONE for system =", system)
 
