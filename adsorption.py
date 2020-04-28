@@ -20,7 +20,7 @@ calculator = "vasp"; calculator = calculator.lower()
 
 # Whether to calculate formation energy of BULK ALLOY from its component metals.
 calc_formation_energy = True
-do_cohp = True
+do_cohp = False
 lobster = "/lustre0/home/n22240/lobster/lobster-3.2.0/lobster-3.2.0"
 #
 # --- Determine lattice constant ---
@@ -61,7 +61,7 @@ else:
 	ads_geom  = [(0, 0, 0)]
 
 vacuum = 10.0
-nlayer = 2
+nlayer = 3
 nrelax = 2
 repeat_bulk = 2
 #
