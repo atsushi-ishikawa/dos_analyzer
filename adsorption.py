@@ -97,8 +97,8 @@ if "vasp" in calculator:
 	sigma_sp  = 0.1
 	kpts_sp   = [5,5,1]
 
-	npar = 10 # 18 for ito
-	nsim = 10
+	npar = 18 # 18 for ito
+	nsim = 18
 	#
 	# xc set
 	#
@@ -237,7 +237,9 @@ surf.set_constraint(c)
 surf.set_calculator(calc_opt)
 surf.get_potential_energy()
 
-nbands = calc_opt.read_number_of_electrons()//2 + len(surf)*4 # needed to increase nbands for COHP by lobster
+if do_cohp:
+	nbands = calc_opt.read_number_of_electrons()//2 + len(surf)*4 # needed to increase nbands for COHP by lobster
+
 # single point
 calc_sp.int_params["nbands"] = nbands # replace the calculator
 surf.set_calculator(calc_sp)
