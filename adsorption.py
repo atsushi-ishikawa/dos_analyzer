@@ -237,11 +237,10 @@ surf.set_constraint(c)
 surf.set_calculator(calc_opt)
 surf.get_potential_energy()
 
+# single point
 if do_cohp:
 	nbands = calc_opt.read_number_of_electrons()//2 + len(surf)*4 # needed to increase nbands for COHP by lobster
-
-# single point
-calc_sp.int_params["nbands"] = nbands # replace the calculator
+	calc_sp.int_params["nbands"] = nbands # replace the calculator
 surf.set_calculator(calc_sp)
 e_slab = surf.get_potential_energy()
 
