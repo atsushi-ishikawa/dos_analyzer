@@ -90,6 +90,7 @@ def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", encut=40
 	gamma  = True
 	nsw    = 200
 	isif   = 6 # or 6---freezing ions
+	isym   = 0
 
 	xc = xc.lower()
 	if xc == "pbe" or xc == "pbesol" or xc == "rpbe":
@@ -104,7 +105,7 @@ def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", encut=40
 	calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=1,
 				ismear=1, sigma=0.2, isif=isif, nelmin=nelmin, encut=encut,
 				ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-				kpts=kpts, gamma=gamma, isym=0, npar=npar, nsim=nsim, lreal=False )
+				kpts=kpts, gamma=gamma, isym=isym, npar=npar, nsim=nsim, lreal=False )
 
 	bulk.set_calculator(calc)
 	bulk.get_potential_energy()

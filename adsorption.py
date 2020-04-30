@@ -83,7 +83,7 @@ if "vasp" in calculator:
 	ediffg = -0.05
 	kpts   =  [3,3,1]
 	gamma  =  True
-	isym   = -1
+	isym   =  0
 	ispin  =  1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 	ibrion =  2
 	nfree  =  20
@@ -238,9 +238,8 @@ surf.set_calculator(calc_opt)
 surf.get_potential_energy()
 
 # single point
-if do_cohp:
-	nbands = calc_opt.read_number_of_electrons()//2 + len(surf)*4 # needed to increase nbands for COHP by lobster
-	calc_sp.int_params["nbands"] = nbands # replace the calculator
+nbands = calc_opt.read_number_of_electrons()//2 + len(surf)*4 # needed to increase nbands for COHP by lobster
+calc_sp.int_params["nbands"] = nbands # replace the calculator
 surf.set_calculator(calc_sp)
 e_slab = surf.get_potential_energy()
 
@@ -288,13 +287,17 @@ e_mol = mol.get_potential_energy()
 #
 # ------------------- surface + adsorbate -------------------
 #
-if position_str == "atop":
-	position = (0, 0)
-	offset = (0.5, 0.5)
-elif position_str == "hcp":
+if position_str=="atop":
+	if nlayer==2:
+		position = (0, 0)
+		offset = (0.5, 0.5)
+	elif nlayer==3:
+		position = (0, 0)
+		offset = (0.3333, 0.3333)
+elif position_str=="hcp":
 	position = (0,0)
 	offset = (0.1667, 0.1667)
-elif position_str == "fcc":
+elif position_str=="fcc":
 	position = (0,0)
 	offset = (0.3333, 0.3333)
 
