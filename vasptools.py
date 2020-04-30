@@ -90,7 +90,7 @@ def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", encut=40
 	gamma  = True
 	nsw    = 200
 	isif   = 6 # or 6---freezing ions
-	isym   = 0
+	isym   = -1
 
 	xc = xc.lower()
 	if xc == "pbe" or xc == "pbesol" or xc == "rpbe":

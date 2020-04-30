@@ -77,13 +77,14 @@ if "vasp" in calculator:
 	prec   = "normal"
 	encut  =  400
 	nelmin =  5
+	nelm   =  50
 	potim  =  0.10
 	nsw    =  200
 	ediff  =  1.0e-5
 	ediffg = -0.05
 	kpts   =  [3,3,1]
 	gamma  =  True
-	isym   =  0
+	isym   =  -1
 	ispin  =  1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
 	ibrion =  2
 	nfree  =  20
@@ -97,8 +98,8 @@ if "vasp" in calculator:
 	sigma_sp  = 0.1
 	kpts_sp   = [5,5,1]
 
-	npar = 18 # 18 for ito
-	nsim = 18
+	npar = 10 # 18 for ito
+	nsim = 10
 	#
 	# xc set
 	#
@@ -134,11 +135,11 @@ db_surf   = connect(surf_json)
 #
 if "vasp" in calculator:
 	calc_opt = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast", 
-					encut=encut, ismear=ismear, sigma=sigma, istart=0, nelmin=nelmin, 
+					encut=encut, ismear=ismear, sigma=sigma, istart=0, nelm=nelm, nelmin=nelmin, 
 					isym=isym, ibrion=ibrion, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
 			 		kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
 	calc_sp  = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
-					encut=encut_sp, ismear=ismear_sp, sigma=sigma_sp, istart=0, nelmin=nelmin, 
+					encut=encut_sp, ismear=ismear_sp, sigma=sigma_sp, istart=0, nelm=nelm, nelmin=nelmin, 
 					isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
 					kpts=kpts_sp, gamma=gamma, npar=npar, nsim=nsim, lreal=True, lorbit=10)
 	kpts_bulk_sp = [max(kpts_sp) for i in range(3)]
@@ -276,7 +277,7 @@ mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 
 if "vasp" in calculator:
 	calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
-					 encut=encut_sp, ismear=0, sigma=0.05, istart=0, nelmin=nelmin, 
+					 encut=encut_sp, ismear=0, sigma=0.05, istart=0, nelm=nelm, nelmin=nelmin, 
 					 isym=isym, ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
 					 kpts=[1,1,1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
 elif "emt" in calculator:
