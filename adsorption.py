@@ -72,17 +72,17 @@ if "vasp" in calculator:
 	# INCAR keywords
 	#
 	xc     = "pbe"
-	ismear = 2
+	ismear = 1
 	sigma  = 0.1
 	prec   = "normal"
 	encut  =  400
 	nelmin =  5
-	nelm   =  50
+	nelm   =  100
 	potim  =  0.10
 	nsw    =  200
 	ediff  =  1.0e-5
 	ediffg = -0.05
-	kpts   =  [3,3,1]
+	kpts   =  [2,2,1]
 	gamma  =  True
 	isym   =  -1
 	ispin  =  1 #### NOTICE: "analyze.dos" is not yet adjusted to ispin=2
@@ -94,9 +94,10 @@ if "vasp" in calculator:
 	#
 	xc_sp     = xc
 	encut_sp  = encut
-	ismear_sp = -5
+	ismear_sp = 1 # -5
 	sigma_sp  = 0.1
-	kpts_sp   = [5,5,1]
+	gamma_sp  = True
+	kpts_sp   = [4,4,1]
 
 	npar = 10 # 18 for ito
 	nsim = 10
@@ -141,7 +142,7 @@ if "vasp" in calculator:
 	calc_sp  = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast", 
 					encut=encut_sp, ismear=ismear_sp, sigma=sigma_sp, istart=0, nelm=nelm, nelmin=nelmin, 
 					isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
-					kpts=kpts_sp, gamma=gamma, npar=npar, nsim=nsim, lreal=True, lorbit=10)
+					kpts=kpts_sp, gamma=gamma_sp, npar=npar, nsim=nsim, lreal=True, lorbit=10)
 	kpts_bulk_sp = [max(kpts_sp) for i in range(3)]
 	calc_bulk_sp = copy.deepcopy(calc_sp)
 elif "emt" in calculator:
