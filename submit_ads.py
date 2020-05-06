@@ -1,7 +1,11 @@
 import os,sys
 
+# pure metals
+# note: no need to do separate calculation for pure metals when making alloy-including database,
+#       just set "First=True" flag in alloy part
+
 alloy = True
-env = "ito" # or "hokudai"
+env = "hokudai" # or "hokudai"
 
 dict = {
   "0"  : {"element" : "Rh" , "lattice" : "fcc" },
@@ -46,7 +50,6 @@ if alloy:
 				os.system(command)
 
 # do pure metal if the loop is first
-
 if first:
 	for i in range(0,len(dict)):
 		element = dict[str(i)]["element"]
