@@ -54,8 +54,8 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
 		#
 		list = bulk.get_chemical_symbols()
 		#
-
-		np.random.seed(1)# set random seed for reproducability
+		#np.random.seed(1) # set random seed for reproducability --> gives same structures for all alloys
+		np.random.seed() 
 
 		replace_list = np.random.choice(len(list), size=natom2, replace=False)
 		for i in replace_list:
