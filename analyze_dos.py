@@ -12,7 +12,7 @@ from ase.dft import get_distribution_moment
 import matplotlib.pyplot as plt
 #
 # Usage:
-#  python analyze.dos 1 DOSCAR_Au_111 s p d
+#  python analyze2.dos 1 Au_111 s p d
 #
 do_cohp = False
 check   = False
@@ -31,8 +31,7 @@ cohpcar  = "COHPCAR_" + system
 
 print(" ----- %s ----- " % system)
 
-#if numpeaks==2:
-sigma = 100.0 # 100 -- d-dominant but not good learning curve # 1.0,2.0 -- d not dominant
+sigma = 60
 
 id  = db.get(system=system).id
 obj = db[id]
@@ -77,7 +76,6 @@ data    = obj.data
 #
 # limit analysis only for occupied part
 #
-#margin = 1.0
 margin = 0.0
 ene = list(filter(lambda x : x <= efermi+margin, ene))
 
@@ -139,15 +137,15 @@ for orbital in orbitals:
 	try:
 		params,rss,r2 = gaussian_fit(ene, pdos, params)
 		peaks = sort_peaks(params, key="height")
-		#peaks = sort_peaks(params, key="position")
-		print("%s compoent R^2 = %5.3f" % (orbital, r2))
+		print("found %d peaks -- %s compoent R^2 = %5.3f" % (len(peaks), orbital, r2))
 	except:
-		params = []
-		r2 = 0.0
-		peaks  = [(0,0,0) for i in range(numpeaks)]
-
-	# quit if R^2 is too low
-	if r2 < 0.98:
+ 		params = []
+ 		r2 = 0.0
+ 		peaks  = [(0,0,0) for i in range(numpeaks)]
+	#
+	# discard if R^2 is too low
+	#
+	if r2 < 0.90: # 0.98:
 		print("fitting failed: r2 (%5.3f) is too low ... quit" % r2)
 		peaks  = [(0,0,0) for i in range(numpeaks)]
 	#
@@ -158,7 +156,7 @@ for orbital in orbitals:
 	for peak in peaks:
 		tmp.append(peak[0]); tmp.append(peak[1]); tmp.append(peak[2])
 	peaks = sort_peaks(tmp, key="position")
-	#peaks = sort_peaks(tmp, key="height")
+
 	if relative_to_fermi:
 		peaks = list(map(lambda x : (x[0]-efermi,x[1],x[2]), peaks))
 
@@ -250,31 +248,9 @@ for orbital in orbitals:
 	data.update({ orbital + "-" + "position_occ" : position_occ})
 	data.update({ orbital + "-" + "height_occ"   : height_occ})
 	data.update({ orbital + "-" + "width_occ"    : width_occ})
-	#data.update({ orbital + "-" + "area_occ"     : area_occ})
-
-	#data.update({ orbital + "-" + "position_vir" : position_vir})
-	#data.update({ orbital + "-" + "height_vir"   : height_vir})
-	#data.update({ orbital + "-" + "width_vir"    : width_vir})
-
-	#data.update({ orbital + "-" + "area_vir"     : area_vir})
 
 	#upper_edge -= efermi
 	#lower_edge -= efermi
-
-	#data.update({ orbital + "-" + "upper_edge" : upper_edge})
-	#data.update({ orbital + "-" + "lower_edge" : lower_edge})
-	#data.update({ orbital + "-" + "upper_edge_site" : upper_edge_site})
-	#data.update({ orbital + "-" + "upper_edge_surf" : upper_edge_surf})
-
-	#data.update({ orbital + "-" + "center"      : center})
-	#data.update({ orbital + "-" + "center_surf" : center_surf})
-	#data.update({ orbital + "-" + "center_site" : center_site})
-	#data.update({ orbital + "-" + "integ"      : integ})
-	#data.update({ orbital + "-" + "integ_surf" : integ_surf})
-	#data.update({ orbital + "-" + "integ_site" : integ_site})
-	#data.update({ orbital + "-" + "second"      : second})
-	#data.update({ orbital + "-" + "third"       : third})
-	#data.update({ orbital + "-" + "fourth"      : fourth})
 
 #a,b,c,alpha,beta,gamma = atoms.get_cell_lengths_and_angles()
 #surf_area = a*b*math.sin(math.radians(gamma))
