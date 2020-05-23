@@ -54,8 +54,8 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
 		#
 		list = bulk.get_chemical_symbols()
 		#
-		#np.random.seed(1) # set random seed for reproducability --> gives same structures for all alloys
-		np.random.seed() 
+
+		np.random.seed(1)# set random seed for reproducability
 
 		replace_list = np.random.choice(len(list), size=natom2, replace=False)
 		for i in replace_list:
@@ -90,7 +90,6 @@ def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", encut=40
 	gamma  = True
 	nsw    = 200
 	isif   = 6 # or 6---freezing ions
-	isym   = -1
 
 	xc = xc.lower()
 	if xc == "pbe" or xc == "pbesol" or xc == "rpbe":
@@ -105,7 +104,7 @@ def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", encut=40
 	calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=1,
 				ismear=1, sigma=0.2, isif=isif, nelmin=nelmin, encut=encut,
 				ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-				kpts=kpts, gamma=gamma, isym=isym, npar=npar, nsim=nsim, lreal=False )
+				kpts=kpts, gamma=gamma, isym=0, npar=npar, nsim=nsim, lreal=False )
 
 	bulk.set_calculator(calc)
 	bulk.get_potential_energy()
@@ -199,7 +198,10 @@ def gaussian_fit(x, y, guess):
 	from scipy.optimize import curve_fit
 	import numpy as np
 
-	popt, pcov = curve_fit(fit_func, x, y, p0=guess)
+	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=1.0e-5, xtol=1.0e-5)
+	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=1.0e-6, xtol=1.0e-6)
+	popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=1.0e-5, xtol=1.0e-5) # good
+	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=1.0e-6, xtol=1.0e-6)
 
 	fit = fit_func(x,*popt)
 	residual = y - fit
