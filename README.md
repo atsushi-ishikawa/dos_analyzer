@@ -1,95 +1,41 @@
 ## VASPでDOSを自動的に計算してmachine-learning (PCCP投稿中論文)
 
-1. VASPの計算を行う:`adsorption.py`
+* 流れ
+1. VASPの計算を行う: **adsorption.py**
 
-### Plotting DOS
+* bimetallic alloyを想定。上記pythonスクリプトの引数で計算対象を指定する。例えば、
+`python adsorption.py Pt` --> pure metalを計算
+`python adsorption.py Pt Pd 50` --> Pt0.5Pd0.5のalloyを計算。第三引数は第一引数の元素のパーセンテージ。
+* adsorption.pyを実行すると計算条件と計算結果がjsonファイル(**surf_data.json**)に追記される。汎関数や吸着エネルギーなど。
+* *DOSCAR* と *vasprun_{system}.xml* が出力される。systemはalloy surfaceの名前(Ru0.5Rh0.5_111など)
+* bimetallic alloyの成分を変えながら、一連の計算をsubmitするには**submit_ads.py**を使う
+* submit_ads.py内でadsorption.pyにジョブを投げるようになっている。したがって計算機センター等では`python submit_ads.py`を実行すると一連の計算が始まる
 
-```bash {cmd="/bin/bash"}
-scp whisky:/home/a_ishi/ase/ase_vasp/DOSCAR_Pd_111 ./DOSCAR_Pd111
-```
-
-```python {cmd="/Users/ishi/.pyenv/shims/python"}
-from ase import Atoms, Atom
-from ase.calculators.vasp import VaspDos
-import sys
-from vasptools import smear_dos
-import numpy as np
-import matplotlib.pylab as plt
-import seaborn as sb
-
-argvs = sys.argv
-# system  = argvs[1]
-system = "Pd111"
-
-if len(argvs) == 3:
-	orbital = argvs[2]
-	draw_pdos = True
-else:
-	draw_pdos = False
-
-doscar = "DOSCAR_" + system
-sigma = 10.0
-
-#
-# finding natom
-#
-f = open(doscar, "r")
-line1 = f.readline()
-natom = int( line1.split()[0] )
-f.close()
-
-dos = VaspDos(doscar=doscar)
-
-ene  = dos.energy
-tdos = dos.dos
-tdos = smear_dos(ene, tdos, sigma=sigma)
-
-if draw_pdos:
-	pdos = np.zeros(len(tdos))
-	for i in range(0,natom):
-		pdos = pdos + dos.site_dos(i, orbital)
-	pdos = smear_dos(ene, pdos, sigma=sigma)
-
-sb.set(context='notebook', style='darkgrid', palette='deep',
-    font='sans-serif', font_scale=1, color_codes=False, rc=None)
-
-#plt.plot(ene, tdos,"r-",linewidth=2)
-plt.plot(ene, tdos)
-filename = "DOS_" + system + ".png"
-plt.ylabel("Density of state (-)")
-plt.xlabel("Energy (eV)")
-# plt.savefig(filename)
-plt.show()
-```
-
-* to see original DOS
-```bash
-python plotdos.py Rh0.2Cu0.8_111 ; open DOS_Rh0.2Cu0.8_111.png
-```
-
-#### DOSのpeakを検出してjsonファイルに追記する
+2. DOSCARのpeakを検出する: **analyze_dos.py**
+* DOSCARを読み込んでs/p/d-DOSのピークを検出
 * 計算データの入ったjsonファイル("surf_data.json")が必要
-
-##### 個別のDOSCARに行う場合
+* 上記jsonファイルとは別のjsonファイルに結果が出力される(*tmpout.json*)。ここにDOSのピークの情報と吸着エネルギーが書かれる <-- 改善の余地あり
+* １つのDOSCARを解析する場合
 ```bash
 python analize_dos.py [system_name] [orbital(s/p/d)]
  example: python analize_dos.py Rh0.2Cu0.8_111 d
 ```
-
-##### フォルダ内の全てのDOSCARに行う場合
+* フォルダ内の全てのDOSCARに行う場合
 ```bash
 python all_analize.py
 ```
 
-#### After getting DOS
-* convert to CSV
-```python
-from tools import json_to_csv
-json_to_csv("asdf.json","asdf.csv")
-```
-* or analyze by pandas
-```python
-from tools import load_ase_json
-df = load_ase_json("asdf.json") # dataframe
-```
+3. 検出したピークを記述子にして吸着エネルギーの回帰を行う: **regression.py**
+* analyze_dos.pyから出力されたtmpout.jsonを使う
+* sklearnを利用。現状ではOLS (ordinary linear regression), Ridge, LASSO, random forestを行う
+* BOLASSO (bootstrapped LASSSO)はRにしかライブラリがないので**do_bolasso.r**で実行する。regression.pyからはこのRのスクリプトを呼ぶようになっている
 
+---
+
+### その他スクリプト
+* **plotdos.py** : DOSCARをプロット
+```bash
+python plotdos.py Rh0.2Cu0.8_111 ; open DOS_Rh0.2Cu0.8_111.png
+```
+* **waterfall_plot.py** : DOSCARが縦に一斉に並んだようなplotを作る
+* **colormap.py** : alloyの要素に対して吸着エネルギーのカラーマップを作る
