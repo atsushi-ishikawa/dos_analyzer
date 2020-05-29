@@ -1,4 +1,4 @@
-# VASPでDOSを自動的に計算してmachine-learning (PCCP投稿中論文)
+## VASPでDOSを自動的に計算してmachine-learning (PCCP投稿中論文)
 ### Plotting DOS
 
 ```bash {cmd="/bin/bash"}
@@ -64,15 +64,16 @@ plt.show()
 python plotdos.py Rh0.2Cu0.8_111 ; open DOS_Rh0.2Cu0.8_111.png
 ```
 
-#### DOS peak finding and add to database
-* need .json file in the same directory to draw information
+#### DOSのpeakを検出してjsonファイルに追記する
+* 計算データの入ったjsonファイル("surf_data.json")が必要
 
+##### 個別のDOSCARに行う場合
 ```bash
-python analize_dos.py [system_name] [orbital]
+python analize_dos.py [system_name] [orbital(s/p/d)]
  example: python analize_dos.py Rh0.2Cu0.8_111 d
 ```
 
-* Doing for all
+##### フォルダ内の全てのDOSCARに行う場合
 ```bash
 python all_analize.py
 ```
