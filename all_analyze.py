@@ -90,7 +90,6 @@ for i in orbital:
 			df = df[df[key] > 0.0]
 
 print("dropping strange values...after: %4d" % len(df))
-
 #
 # dropping outliers
 #

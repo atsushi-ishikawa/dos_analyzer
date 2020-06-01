@@ -31,7 +31,7 @@ cohpcar  = "COHPCAR_" + system
 
 print(" ----- %s ----- " % system)
 
-sigma = 60
+sigma = 50
 
 id  = db.get(system=system).id
 obj = db[id]
