@@ -12,7 +12,7 @@ from ase.dft import get_distribution_moment
 import matplotlib.pyplot as plt
 #
 # Usage:
-#  python analyze2.dos 1 Au_111 s p d
+#  python analyze.dos 1 Au_111 s p d
 #
 do_cohp = False
 check   = False
