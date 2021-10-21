@@ -1,4 +1,4 @@
-## VASPでDOSを自動的に計算してmachine-learning (PCCP投稿中論文)
+## VASPでDOSを自動的に計算してmachine-learning (投稿中論文)
 
 * 流れ
 1. VASPの計算を行う: **adsorption.py**
