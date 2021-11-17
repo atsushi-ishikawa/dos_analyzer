@@ -1,3 +1,5 @@
+import pandas as pd
+
 def ABcoord(mol,A,B):
 	from ase import Atoms
 	import numpy as np
@@ -40,7 +42,7 @@ def run_packmol(xyz_file, a, num, outfile):
 
 	# os.system("rm pack_tmp.inp")
 
-def json_to_csv(jsonfile, csvfile):
+def json_to_csv(jsonfile, csvfile) -> pd.DataFrame:
 	import json
 	import pandas as pd
 	from pandas.io.json import json_normalize
@@ -72,7 +74,7 @@ def json_to_csv(jsonfile, csvfile):
 
 	ddd.to_csv(csvfile)
 
-def load_ase_json(jsonfile):
+def load_ase_json(jsonfile) -> pd.DataFrame:
 	import json
 	import pandas as pd
 	from pandas.io.json import json_normalize
