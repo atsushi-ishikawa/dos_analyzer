@@ -29,6 +29,7 @@ python all_analize.py
 * analyze_dos.pyから出力されたtmpout.jsonを使う
 * sklearnを利用。現状ではOLS (ordinary linear regression), Ridge, LASSO, random forestを行う
 * BOLASSO (bootstrapped LASSSO)はRにしかライブラリがないので**do_bolasso.r**で実行する。regression.pyからはこのRのスクリプトを呼ぶようになっている
+* あああ
 
 ---
 
