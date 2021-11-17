@@ -59,7 +59,8 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
 
 	return bulk
 
-def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", encut=400, ediff=1.0e-5, ediffg=1.0e-6, npar=1, nsim=1):
+def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol",
+							  encut=400, ediff=1.0e-5, ediffg=1.0e-6, npar=1, nsim=1):
 	""" 
 	function to do bulk optimization
 	"""
@@ -117,23 +118,29 @@ def gaussian(x, x0, a, b):
 
 def smear_dos(energy, dos, sigma=5.0):
 	"""
-	get smeared dos
+	get smeared dos.
+
+	Args:
+		energy:
+		dos:
+		sigma:
+
+	Returns:
+
 	"""
 	import numpy as np
 
 	x = energy
 	y = dos
 
-	length = len(x)
-	y2  = np.zeros(length)
+	smeared = np.zeros(len(energy))
 
 	for i, j in enumerate(x):
 		x0 = x[i]
 		a = y[i]
-		ytmp = gaussian(x, x0, a=a, b=sigma)
-		y2 = y2 + ytmp
+		smeared += gaussian(x, x0, a=a, b=sigma)
 
-	return y2
+	return smeared
 
 def sort_atoms_by_z(atoms):
 	from ase import Atoms, Atom

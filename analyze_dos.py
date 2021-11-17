@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 #  python analyze.dos 1 Au_111 s p d
 #
 do_cohp = False
+do_hilbert = False
 check   = False
 geometry_info = False
 
@@ -37,16 +38,7 @@ id  = db.get(system=system).id
 obj = db[id]
 atoms = db.get_atoms(id=id)  # surface + adsorbate
 
-# get coordinating atom
-adsorbate = "C"
-coord_ind = []
-adsorbate_ind = atoms.get_chemical_symbols().index(adsorbate)
-li = [atoms.get_distance(adsorbate_ind, i) for i in range(len(atoms))]
-li = li[:adsorbate_ind]  # limit on surface
-li = list(map(lambda x: 1.0e3 if x < 1.0e-3 else x, li))
-
-coord_ind.append(np.argmin(li))
-coord_num = atoms[coord_ind].get_atomic_numbers()[0]  # atomic number of coordinating atom
+coord_num = get_adsorption_site(atoms=atoms, adsorbing_element="C")
 
 orbitals = []
 norbs = len(argvs) - 3  # number of orbitals
@@ -62,11 +54,11 @@ line1 = f.readline()
 natom = int(line1.split()[0])
 f.close()
 
-dos  = VaspDos(doscar=doscar)
-ene  = dos.energy
-tdos = dos.dos
+vaspdos = VaspDos(doscar=doscar)
+ene = vaspdos.energy
+dos = vaspdos.dos
 
-system  = obj.system  # already know!
+system  = obj.system
 lattice = obj.lattice
 data    = obj.data
 
@@ -75,46 +67,22 @@ margin = 0.0
 ene = list(filter(lambda x: x <= efermi+margin, ene))
 
 for orbital in orbitals:
-	# get pdos for total system
-	pdos_tot = np.zeros(len(ene))
-	tmpdos   = np.zeros(len(ene))
-	for i in range(0, natom):
-		tmpdos = tmpdos + dos.site_dos(i, orbital)[:len(ene)]
-	tmpdos = tmpdos[:len(ene)]
-	tmpdos = tmpdos/np.max(tmpdos) if normalize_height else tmpdos
-	pdos_tot = smear_dos(ene, tmpdos, sigma=sigma)
+	# get pdos
+	pdos = get_projected_dos(ene, natom, vaspdos, orbital)
 
-	integ  = get_distribution_moment(ene, tmpdos, order=0)
-	center = get_distribution_moment(ene, tmpdos, order=1)
-	second = get_distribution_moment(ene, tmpdos, order=2)
-	third  = get_distribution_moment(ene, tmpdos, order=3)
-	fourth = get_distribution_moment(ene, tmpdos, order=4)
+	# smear
+	pdos = smear_dos(ene, pdos, sigma=sigma)
 
-	# get pdos for surface layer
-	pdos_surf = np.zeros(len(ene))
-	tmpdos    = np.zeros(len(ene))
-	for i in range(48, 64):
-		tmpdos  = tmpdos + dos.site_dos(i, orbital)[:len(ene)]
-	tmpdos      = tmpdos[:len(ene)]
-	tmpdos      = tmpdos/np.max(tmpdos) if normalize_height else tmpdos
-	pdos_surf   = smear_dos(ene, tmpdos, sigma=sigma)
-	integ_surf  = get_distribution_moment(ene, tmpdos, order=0)
-	center_surf = get_distribution_moment(ene, tmpdos, order=1)
+	# get descriptor for pdos
+	center, second = get_descriptors(range=range(0, natom))
 
-	# get pdos for adsorbating atom
-	pdos_site = np.zeros(len(ene))
-	tmpdos    = np.zeros(len(ene))
-	for i in coord_ind:
-		tmpdos += dos.site_dos(i, orbital)[:len(ene)]
+	# get descriptor for surface
+	center_surf, second_surf = get_descriptors(range=range(48, 64))
 
-	tmpdos      = tmpdos[:len(ene)]
-	tmpdos      = tmpdos/np.max(tmpdos) if normalize_height else tmpdos
-	pdos_site   = smear_dos(ene, tmpdos, sigma=sigma)
-	integ_site  = get_distribution_moment(ene, tmpdos, order=0)
-	center_site = get_distribution_moment(ene, tmpdos, order=1)
+	# get descriptor for adsorption site
+	center_site, second_site = get_descriptors(range=coord_ind)
 
 	# analyze dos by fitting Gaussian
-	pdos  = pdos_tot  # specify dos to analyze
 	peaks = findpeak(ene, pdos)
 
 	width = 1.0*(1/sigma**0.5)  # guess for the Gaussian fit
@@ -144,6 +112,7 @@ for orbital in orbitals:
 	tmp = []
 	for peak in peaks:
 		tmp.append(peak[0]); tmp.append(peak[1]); tmp.append(peak[2])
+
 	peaks = sort_peaks(tmp, key="position")
 
 	if relative_to_fermi:
@@ -157,10 +126,10 @@ for orbital in orbitals:
 	vir_peaks = vir_peaks + [(0, 0, 0)]*(numpeaks - len(vir_peaks))
 
 	# take upper edge by inverse Hilbert transform
-	upper_edge, lower_edge = calc_edge(numpeaks, ene, pdos)
-	upper_edge_surf, lower_edge_surf = calc_edge(numpeaks, ene, pdos_surf)
-	upper_edge_site, lower_edge_site = calc_edge(numpeaks, ene, pdos_site)
-	#edge = np.hstack( (upper_edge, lower_edge) )
+	if do_hilbert:
+		upper_edge, lower_edge = calc_edge(numpeaks, ene, pdos)
+		upper_edge_surf, lower_edge_surf = calc_edge(numpeaks, ene, pdos_surf)
+		upper_edge_site, lower_edge_site = calc_edge(numpeaks, ene, pdos_site)
 
 	if do_cohp:
 		cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center = cohp_analysis(cohpcar)
@@ -175,6 +144,7 @@ for orbital in orbitals:
 		width_occ.append(peak[2])
 		area_occ.append(peak[1]*peak[2]*np.sqrt(np.pi))
 		# integral of Gauss function = height * sqrt(pi/a) where a = 1/width^2
+
 	for peak in vir_peaks:
 		position_vir.append(peak[0])
 		height_vir.append(peak[1])
@@ -183,29 +153,7 @@ for orbital in orbitals:
 
 	# if you want to check by eye
 	if check:
-		import matplotlib.pylab as plt
-		import seaborn as sb
-		from scipy import fftpack
-
-		fit = fit_func(ene, *params)
-		ih  = fftpack.ihilbert(pdos)
-
-		sb.set(context='notebook', style='darkgrid', palette='deep',
-			   font='sans-serif', font_scale=1, color_codes=False, rc=None)
-		plt.plot(ene, fit,  label="fitted")
-		plt.plot(ene, pdos, label="original")
-		plt.vlines(position_occ, 0, np.max(pdos), linestyle="dashed", linewidth=0.5)
-		#plt.plot(ene, ih, label="inverse Hilbert")
-		plt.xlim([min(ene), max(ene)+margin])
-
-		plt.legend()
-		plt.show()
-
-		if do_cohp:
-			cohp_smeared = smear_dos(ene2, cohp, sigma=sigma)
-			plt.plot(ene2, cohp_smeared, label="COHP")
-			plt.legend()
-			plt.show()
+		plot_dos(do_cohp, do_hilbert)
 
 	# write to database
 	data.update({orbital + "-" + "position_occ": position_occ})
@@ -269,3 +217,120 @@ def cohp_analysis(cohpcar):
 	cohp_neg_center = get_distribution_moment(ene2, cohp_neg, order=1)
 
 	return cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center
+
+def plot_dos(do_cohp=False, do_hilbert=False):
+	"""
+
+	Args:
+		do_cohp:
+		do_hilbert:
+
+	Returns:
+
+	"""
+	import matplotlib.pylab as plt
+	import seaborn as sb
+	from scipy import fftpack
+
+	fit = fit_func(ene, *params)
+
+	if do_hilbert:
+		ih = fftpack.ihilbert(pdos)
+
+	sb.set(context='notebook', style='darkgrid', palette='deep',
+		font='sans-serif', font_scale=1, color_codes=False, rc=None)
+	plt.plot(ene, fit, label="fitted")
+	plt.plot(ene, pdos, label="original")
+	plt.vlines(position_occ, 0, np.max(pdos), linestyle="dashed", linewidth=0.5)
+	# plt.plot(ene, ih, label="inverse Hilbert")
+	plt.xlim([min(ene), max(ene) + margin])
+
+	plt.legend()
+	plt.show()
+
+	if do_cohp:
+		cohp_smeared = smear_dos(ene2, cohp, sigma=sigma)
+		plt.plot(ene2, cohp_smeared, label="COHP")
+		plt.legend()
+		plt.show()
+
+	return None
+
+def get_descriptors(dos, range=None, orbital=None, normalize_height=True):
+	"""
+	get descriptors.
+
+	Args:
+		dos:
+		range:
+		orbital:
+		normalize_height:
+	Returns:
+
+	"""
+	tmp = np.zeros(len(ene))
+	for i in range(0, natom):
+		tmp += dos.site_dos(i, orbital)[:len(ene)]
+
+	tmp = tmp[:len(ene)]
+	tmp = tmp/np.max(tmpdos) if normalize_height else tmpdos
+
+	center = get_distribution_moment(ene, tmp, order=1)
+	second = get_distribution_moment(ene, tmp, order=2)
+	third  = get_distribution_moment(ene, tmp, order=3)
+
+	return center, second, third
+
+def get_adsorption_site(atoms=None, adsorbing_element="C"):
+	"""
+	get coordinating atom.
+
+	Args:
+		atoms:
+		adsorbing_element:
+
+	Returns:
+
+	"""
+	coord_ind = []
+	adsorbate_ind = atoms.get_chemical_symbols().index(adsorbing_element)
+	li = [atoms.get_distance(adsorbate_ind, i) for i in range(len(atoms))]
+	li = li[:adsorbate_ind]  # limit on surface
+	li = list(map(lambda x: 1.0e3 if x < 1.0e-3 else x, li))
+
+	coord_ind.append(np.argmin(li))
+	coord_num = atoms[coord_ind].get_atomic_numbers()[0]  # atomic number of coordinating atom
+
+	return coord_num
+
+def get_projected_dos(ene, natom, vaspdos, orbital):
+	"""
+	Get projected DOS.
+
+	Args:
+		ene:
+		natom:
+		vaspdos: VaspDos object
+		orbital:
+
+	Returns:
+
+	"""
+	pdos = np.zeros(len(ene))
+	for i in range(0, natom):
+		pdos += vaspdos.site_dos(i, orbital)[:len(ene)]
+
+	pdos = pdos[:len(ene)]
+	return pdos
+
+def normalize_height(dos):
+	"""
+
+	Args:
+		dos:
+
+	Returns:
+
+	"""
+	dos = dos / np.max(dos)
+	return dos
