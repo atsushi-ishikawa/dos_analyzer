@@ -187,9 +187,6 @@ for orbital in orbitals:
 		import seaborn as sb
 		from scipy import fftpack
 
-		#print("upper edge:{}".format(upper_edge))
-		#print("lower edge:{}".format(lower_edge))
-
 		fit = fit_func(ene, *params)
 		ih  = fftpack.ihilbert(pdos)
 
