@@ -47,7 +47,6 @@ li = list(map(lambda x: 1.0e3 if x < 1.0e-3 else x, li))
 
 coord_ind.append(np.argmin(li))
 coord_num = atoms[coord_ind].get_atomic_numbers()[0]  # atomic number of coordinating atom
-#print("coordinating to %s" % atoms[coord_ind].get_chemical_symbols())
 
 orbitals = []
 norbs = len(argvs) - 3  # number of orbitals
