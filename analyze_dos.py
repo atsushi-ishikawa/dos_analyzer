@@ -273,4 +273,3 @@ def cohp_analysis(cohpcar):
 	cohp_neg_center = get_distribution_moment(ene2, cohp_neg, order=1)
 
 	return cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center
-
