@@ -106,42 +106,6 @@ def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol",
 	os.chdir(cudir)
 	shutil.rmtree(workdir)
 
-def gaussian(x, x0, a, b):
-	"""
-	y = a*exp(-b*(x-x0)**2)
-	"""
-	import numpy as np
-	x = np.array(x)
-	y = np.exp(-b*(x-x0)**2)
-	y = a*y
-	return y
-
-def smear_dos(energy, dos, sigma=5.0):
-	"""
-	get smeared dos.
-
-	Args:
-		energy:
-		dos:
-		sigma:
-
-	Returns:
-
-	"""
-	import numpy as np
-
-	x = energy
-	y = dos
-
-	smeared = np.zeros(len(energy))
-
-	for i, j in enumerate(x):
-		x0 = x[i]
-		a = y[i]
-		smeared += gaussian(x, x0, a=a, b=sigma)
-
-	return smeared
-
 def sort_atoms_by_z(atoms):
 	from ase import Atoms, Atom
 	import numpy as np
@@ -172,13 +136,6 @@ def sort_atoms_by_z(atoms):
 	newatoms.set_cell(cell)
 
 	return newatoms
-
-def findpeak(x, y):
-	import numpy as np
-	import peakutils 
-
-	indexes = peakutils.indexes(y, thres=0.1, min_dist=1)
-	return indexes
 
 def fit_func(x, *params):
 	import numpy as np

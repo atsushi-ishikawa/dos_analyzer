@@ -10,9 +10,33 @@ from vasptools import get_efermi_from_doscar
 from ase.dft import get_distribution_moment
 
 class VaspDosPlus:
-	def __init__(self, doscar=None):
+	def __init__(self, doscar=None, numpeaks=1, system=None, orbitals=None):
 		self._doscar = doscar
-		pass
+		self._numpeaks = numpeaks
+		self._system = system
+		self._jsonfile = None
+
+		self.margin = 0.0
+
+		self.vaspdos = VaspDos(doscar=doscar)
+		self.efermi  = get_efermi_from_doscar(doscar)
+
+		# limit analysis on occupied part only
+		energy  = self.vaspdos.energy
+		self.energy = list(filter(lambda x: x <= self.efermi + self.margin, energy))
+
+		if orbitals is None:
+			self.orbitals = {"s": 0, "p": 1, "d": 2}
+
+		# finding natom
+		with open(doscar, "r") as f:
+			line1 = f.readline()
+			self.natom = int(line1.split()[0])
+
+		self._normalize = False
+
+	def load_surface_data(self, json=None):
+		self._jsonfile = json
 
 	def get_descriptors(self):
 		"""
@@ -23,23 +47,21 @@ class VaspDosPlus:
 
 		Examples:
 		python analyze.dos 1 Au_111 s p d
-
 		"""
 		do_cohp = False
 		do_hilbert = False
-		check   = False
+		check = False
 		geometry_info = False
-
 		relative_to_fermi = False
 
-		json = "surf_data.json"
+		json = self._jsonfile
 		db = connect(json)
 
-		argvs    = sys.argv
-		numpeaks = int(argvs[1])
-		system   = argvs[2]
-		doscar   = "DOSCAR_" + system
-		cohpcar  = "COHPCAR_" + system
+		numpeaks = self._numpeaks
+		system   = self._system
+		doscar   = self._doscar
+		if do_cohp:
+			cohpcar  = self._system + "COHPCAR"
 
 		print(" ----- %s ----- " % system)
 
@@ -51,40 +73,19 @@ class VaspDosPlus:
 
 		# coord_num = get_adsorption_site(atoms=atoms, adsorbing_element="C")
 
-		orbitals = []
-		norbs = len(argvs) - 3  # number of orbitals
-		efermi = get_efermi_from_doscar(doscar)
-
-		# get orbital list
-		for i in range(0, norbs):
-			orbitals.append(str(argvs[i+3]))
-
-		# finding natom
-		f = open(doscar, "r")
-		line1 = f.readline()
-		natom = int(line1.split()[0])
-		f.close()
-
-		vaspdos = VaspDos(doscar=doscar)
-		ene = vaspdos.energy
-
 		system  = obj.system
 		lattice = obj.lattice
 		data    = obj.data
 
-		# limit analysis on occupied part only
-		margin = 0.0
-		ene = list(filter(lambda x: x <= efermi+margin, ene))
-
-		for orbital in orbitals:
+		for orbital in self.orbitals.values():
 			# get pdos
-			pdos = get_projected_dos(ene, natom, vaspdos, orbital)
+			pdos = self.get_projected_dos(self.vaspdos, orbital)
 
 			# smear
-			pdos = smear_dos(ene, pdos, sigma=sigma)
+			pdos = self.smear_dos(pdos, sigma=sigma)
 
 			# get descriptor for pdos
-			center, second = get_descriptor(range=range(0, natom), normalize_height=False)
+			center, second = self.get_descriptor(atom_range=range(0, self.natom), orbital=orbital)
 
 			# get descriptor for surface
 			#center_surf, second_surf = get_descriptor(range=range(48, 64))
@@ -93,18 +94,18 @@ class VaspDosPlus:
 			#center_site, second_site = get_descriptor(range=coord_ind)
 
 			# analyze dos by fitting Gaussian
-			peaks = findpeak(ene, pdos)
+			peaks = self.findpeak(pdos)
 
 			width = 1.0*(1/sigma**0.5)  # guess for the Gaussian fit
 			params = []
 			for idx in peaks:
-				params.append(ene[idx])
+				params.append(self.energy[idx])
 				params.append(pdos[idx])
 				params.append(width)
 
 			# Try gaussian fit. If fails, return blanked list
 			try:
-				params, rss, r2 = gaussian_fit(ene, pdos, params)
+				params, rss, r2 = gaussian_fit(pdos, params)
 				peaks = sort_peaks(params, key="height")
 				print("found %d peaks -- %s compoent R^2 = %5.3f" % (len(peaks), orbital, r2))
 			except:
@@ -125,10 +126,10 @@ class VaspDosPlus:
 			peaks = sort_peaks(tmp, key="position")
 
 			if relative_to_fermi:
-				peaks = list(map(lambda x: (x[0]-efermi, x[1], x[2]), peaks))
+				peaks = list(map(lambda x: (x[0] - self.efermi, x[1], x[2]), peaks))
 
-			occ_peaks = list(filter(lambda x: x[0] < efermi+margin, peaks))
-			vir_peaks = list(filter(lambda x: x[0] >= efermi+margin, peaks))
+			occ_peaks = list(filter(lambda x: x[0] < self.efermi + self.margin, peaks))
+			vir_peaks = list(filter(lambda x: x[0] >= self.efermi + self.margin, peaks))
 
 			# zero padding upto numpeaks
 			occ_peaks = occ_peaks + [(0, 0, 0)]*(numpeaks - len(occ_peaks))
@@ -136,7 +137,7 @@ class VaspDosPlus:
 
 			# take upper edge by inverse Hilbert transform
 			if do_hilbert:
-				upper_edge, lower_edge = calc_edge(numpeaks, ene, pdos)
+				upper_edge, lower_edge = calc_edge(numpeaks, pdos)
 
 			if do_cohp:
 				cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center = cohp_analysis(cohpcar)
@@ -163,12 +164,12 @@ class VaspDosPlus:
 				plot_dos(do_cohp, do_hilbert)
 
 			# write to database
-			data.update({orbital + "-" + "position_occ": position_occ})
-			data.update({orbital + "-" + "height_occ": height_occ})
-			data.update({orbital + "-" + "width_occ": width_occ})
-
-			data.update({orbital + "-" + "center": center})
-			data.update({orbital + "-" + "second": second})
+			orbitalname = get_key_from_value(self.orbitals, orbital)
+			data.update({orbitalname + "-" + "position_occ": position_occ})
+			data.update({orbitalname + "-" + "height_occ": height_occ})
+			data.update({orbitalname + "-" + "width_occ": width_occ})
+			data.update({orbitalname + "-" + "center": center})
+			data.update({orbitalname + "-" + "second": second})
 
 		#upper_edge -= efermi
 			#lower_edge -= efermi
@@ -190,7 +191,7 @@ class VaspDosPlus:
 		if relative_to_fermi:
 			db2.write(atoms, system=system, lattice=lattice, data=data)
 		else:
-			db2.write(atoms, system=system, lattice=lattice, data=data, efermi=efermi)
+			db2.write(atoms, system=system, lattice=lattice, data=data, efermi=self.efermi)
 
 		print("DONE for system =", system)
 
@@ -209,26 +210,26 @@ class VaspDosPlus:
 
 	def cohp_analysis(self, cohpcar):
 		ene2, cohp = read_cohp(cohpcar)
-		ene2 = np.array(ene2) + efermi
+		ene2 = np.array(ene2) + self.efermi
 
 		cohp_pos = np.array(list(map(lambda x: x if x > 0.0 else 0.0, cohp)))
 		cohp_neg = np.array(list(map(lambda x: x if x < 0.0 else 0.0, cohp)))
 
-		cohp_pos = smear_dos(ene2, cohp_pos, sigma=sigma)
-		cohp_neg = smear_dos(ene2, cohp_neg, sigma=sigma)
+		cohp_pos = smear_dos(cohp_pos, sigma=sigma)
+		cohp_neg = smear_dos(cohp_neg, sigma=sigma)
 
 		# find peak for pos
-		peaks  = findpeak(ene2, cohp_pos)
+		peaks  = findpeak(cohp_pos)
 		maxind = peaks[np.argmax(cohp_pos[peaks])]  # highest peak
 		cohp_pos_peak = ene2[maxind]
 
 		# find peak for neg
-		peaks = findpeak(ene2, cohp_neg)
+		peaks = findpeak(cohp_neg)
 		minind = peaks[np.argmin(cohp_neg[peaks])]  # highest peak
 		cohp_neg_peak = ene2[minind]
 
-		cohp_pos_center = get_distribution_moment(ene2, cohp_pos, order=1)
-		cohp_neg_center = get_distribution_moment(ene2, cohp_neg, order=1)
+		cohp_pos_center = get_distribution_moment(cohp_pos, order=1)
+		cohp_neg_center = get_distribution_moment(cohp_neg, order=1)
 
 		return cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center
 
@@ -246,19 +247,19 @@ class VaspDosPlus:
 		import seaborn as sb
 		from scipy import fftpack
 
-		fit = fit_func(ene, *params)
+		fit = fit_func(self.energy, *params)
 
 		if do_hilbert:
 			ih = fftpack.ihilbert(pdos)
 
 		sb.set(context='notebook', style='darkgrid', palette='deep',
 			font='sans-serif', font_scale=1, color_codes=False, rc=None)
-		plt.plot(ene, fit, label="fitted")
-		plt.plot(ene, pdos, label="original")
+		plt.plot(self.energy, fit, label="fitted")
+		plt.plot(self.energy, pdos, label="original")
 		plt.vlines(position_occ, 0, np.max(pdos), linestyle="dashed", linewidth=0.5)
 		if do_hilbert:
-			plt.plot(ene, ih, label="inverse Hilbert")
-		plt.xlim([min(ene), max(ene) + margin])
+			plt.plot(self.energy, ih, label="inverse Hilbert")
+		plt.xlim([min(self.energy), max(self.energy) + self.margin])
 
 		plt.legend()
 		plt.show()
@@ -271,30 +272,27 @@ class VaspDosPlus:
 
 		return None
 
-	def get_descriptor(self, dos, range=None, orbital=None, normalize_height=True):
+	def get_descriptor(self, atom_range=None, orbital=None):
 		"""
 		get descriptors.
 
 		Args:
-			dos:
-			range:
+			atom_range:
 			orbital:
-			normalize_height:
 		Returns:
 
 		"""
-		tmp = np.zeros(len(ene))
-		for i in range(0, natom):
-			tmp += dos.site_dos(i, orbital)[:len(ene)]
+		tmp = np.zeros(len(self.energy))
+		for i in atom_range:
+			tmp += self.vaspdos.site_dos(i, orbital)[:len(self.energy)]
 
-		tmp = tmp[:len(ene)]
-		tmp = tmp/np.max(tmpdos) if normalize_height else tmpdos
+		tmp = tmp[:len(self.energy)]
+		tmp = self.normalize_height(tmp) if self._normalize else tmp
 
-		center = get_distribution_moment(ene, tmp, order=1)
-		second = get_distribution_moment(ene, tmp, order=2)
-		third  = get_distribution_moment(ene, tmp, order=3)
+		center = get_distribution_moment(self.energy, tmp, order=1)
+		second = get_distribution_moment(self.energy, tmp, order=2)
 
-		return center, second, third
+		return center, second
 
 	def get_adsorption_site(self, atoms=None, adsorbing_element="C"):
 		"""
@@ -318,24 +316,22 @@ class VaspDosPlus:
 
 		return coord_num
 
-	def get_projected_dos(self, ene, natom, vaspdos, orbital):
+	def get_projected_dos(self, vaspdos, orbital):
 		"""
 		Get projected DOS.
 
 		Args:
-			ene:
-			natom:
 			vaspdos: VaspDos object
 			orbital:
 
 		Returns:
 
 		"""
-		pdos = np.zeros(len(ene))
-		for i in range(0, natom):
-			pdos += vaspdos.site_dos(i, orbital)[:len(ene)]
+		pdos = np.zeros(len(self.energy))
+		for i in range(0, self.natom):
+			pdos += vaspdos.site_dos(i, orbital)[:len(self.energy)]
 
-		pdos = pdos[:len(ene)]
+		pdos = pdos[:len(self.energy)]
 		return pdos
 
 	def normalize_height(self, dos):
@@ -349,3 +345,46 @@ class VaspDosPlus:
 		"""
 		dos = dos / np.max(dos)
 		return dos
+
+	def gaussian(self, x, x0, a, b):
+		"""
+		y = a*exp(-b*(x-x0)**2)
+		"""
+		import numpy as np
+		x = np.array(x)
+		y = np.exp(-b*(x-x0)**2)
+		y = a*y
+		return y
+
+	def smear_dos(self, dos, sigma=5.0):
+		"""
+		get smeared dos.
+
+		Args:
+			dos:
+			sigma:
+
+		Returns:
+
+		"""
+		x = self.energy
+		y = dos
+		smeared = np.zeros(len(x))
+
+		for i, j in enumerate(x):
+			x0 = x[i]
+			a = y[i]
+			smeared += self.gaussian(x, x0, a=a, b=sigma)
+
+		return smeared
+
+	def findpeak(self, y):
+		import peakutils
+
+		indexes = peakutils.indexes(y, thres=0.1, min_dist=1)
+		return indexes
+
+def get_key_from_value(d, val):
+	keys = [k for k, v in d.items() if v == val]
+	if keys:
+		return keys[0]
