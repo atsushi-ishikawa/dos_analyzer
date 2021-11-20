@@ -180,12 +180,14 @@ class VaspDosPlus:
 				plot_dos()
 
 			# write to database
-			orbitalname = get_key_from_value(self.orbitals, orbital)
-			descriptors.update({orbitalname + "-" + "position_occ": position_occ})
-			descriptors.update({orbitalname + "-" + "height_occ": height_occ})
-			descriptors.update({orbitalname + "-" + "width_occ": width_occ})
-			descriptors.update({orbitalname + "-" + "center": center})
-			descriptors.update({orbitalname + "-" + "second": second})
+			orb_name = get_key_from_value(self.orbitals, orbital)
+			for ipeak in range(self._numpeaks):
+				descriptors.update({orb_name + "-" + "position_occ_" + str(ipeak): position_occ[ipeak]})
+				descriptors.update({orb_name + "-" + "height_occ_" + str(ipeak): height_occ[ipeak]})
+				descriptors.update({orb_name + "-" + "width_occ_" + str(ipeak): width_occ[ipeak]})
+
+			descriptors.update({orb_name + "-" + "center": center})
+			descriptors.update({orb_name + "-" + "second": second})
 
 		# end loop for orbitals
 
