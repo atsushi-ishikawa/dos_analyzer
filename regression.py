@@ -41,7 +41,18 @@ def make_dataframe_form_csv(csvfile=None):
 #plt.savefig("pairplot.png")
 #plt.close()
 
-X  = df.drop("E_ads", axis=1)
+X = df.drop("E_ads", axis=1)
+# test
+X = X.drop("s-position_occ", axis=1)
+X = X.drop("s-height_occ", axis=1)
+X = X.drop("s-width_occ", axis=1)
+X = X.drop("p-position_occ", axis=1)
+X = X.drop("p-height_occ", axis=1)
+X = X.drop("p-width_occ", axis=1)
+X = X.drop("d-position_occ", axis=1)
+X = X.drop("d-height_occ", axis=1)
+X = X.drop("d-width_occ", axis=1)
+
 y  = df["E_ads"]
 
 cv = 5

@@ -12,10 +12,12 @@ doscars = glob.glob(doscardir + "/" + "DOSCAR*")
 
 for idoscar in doscars:
 	system = idoscar.split("_")[1] + "_" + idoscar.split("_")[2]
-	data = {"system": system}
+	data = {}
 
-	dos = VaspDosPlus(doscar=idoscar, system=system, numpeaks=2)
-	dos.load_surface_data(json="surf_data.json")
+	dos = VaspDosPlus(doscar=idoscar)
+	dos.surf_jsonfile = "surf_data.json"
+	dos.system = system
+	dos.numpeaks = 2
 
 	descriptor = dos.get_descriptors()
 

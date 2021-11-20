@@ -4,20 +4,20 @@ import sys
 import numpy as np
 import math
 from vasptools import *
-from ase.db import connect
 from vasptools import get_efermi_from_doscar
 from ase.dft import get_distribution_moment
 import matplotlib.pylab as plt
 
 class VaspDosPlus:
-	def __init__(self, doscar=None, numpeaks=1, system=None, orbitals=None):
-		self._doscar = doscar
-		self._numpeaks = numpeaks
-		self._system = system
-		self._jsonfile = None
+	def __init__(self, doscar=None, orbitals=None):
+		self.doscar = doscar
 
+		self._surf_jsonfile = None
+		self._system = None
+		self._numpeaks = 1
+
+		self.db = None
 		self.margin = 0.0
-
 		self.vaspdos = VaspDos(doscar=doscar)
 		self.efermi  = get_efermi_from_doscar(doscar)
 
@@ -33,13 +33,39 @@ class VaspDosPlus:
 			line1 = f.readline()
 			self.natom = int(line1.split()[0])
 
-		self._normalize = False
-		self._do_hilbert = False
-		self._do_cohp = False
-		self._geometry_information = False
+		self.normalize = False
+		self.do_hilbert = False
+		self.do_cohp = False
+		self.geometry_information = False
 
-	def load_surface_data(self, json=None):
-		self._jsonfile = json
+	@property
+	def numpeaks(self):
+		return self._numpeaks
+
+	@numpeaks.setter
+	def numpeaks(self, number_of_peaks=1):
+		self._numpeaks = number_of_peaks
+
+	@property
+	def system(self):
+		return self._system
+
+	@system.setter
+	def system(self, systemname=None):
+		self._system = systemname
+
+	@property
+	def surf_jsonfile(self):
+		return self._surf_jsonfile
+
+	@surf_jsonfile.setter
+	def surf_jsonfile(self, filename=None):
+		self._surf_jsonfile = filename
+
+	def set_database(self):
+		from ase.db import connect
+		json = self._surf_jsonfile
+		self.db = connect(json)
 
 	def get_descriptors(self):
 		"""
@@ -54,29 +80,19 @@ class VaspDosPlus:
 		check = False
 		relative_to_fermi = False
 
-		json = self._jsonfile
-		db = connect(json)
+		self.set_database()
 
-		numpeaks = self._numpeaks
-		system   = self._system
-		doscar   = self._doscar
-		if self._do_cohp:
+		descriptors = {}
+		descriptors = self.add_system_to_dict(dict=descriptors)
+		descriptors = self.add_adsorption_energy_to_dict(dict=descriptors)
+
+		if self.do_cohp:
 			cohpcar  = self._system + "COHPCAR"
 
-		print(" ----- %s ----- " % system)
+		print(" ----- %s ----- " % self._system)
 
 		sigma = 50
 
-		id  = db.get(system=system).id
-		obj = db[id]
-		atoms = db.get_atoms(id=id)  # surface + adsorbate
-
-		# coord_num = get_adsorption_site(atoms=atoms, adsorbing_element="C")
-
-		system  = obj.system
-		lattice = obj.lattice
-
-		descriptors = {}
 		for orbital in self.orbitals.values():
 			# get pdos
 			pdos = self.get_projected_dos(self.vaspdos, orbital)
@@ -110,15 +126,15 @@ class VaspDosPlus:
 				print("found %d peaks -- %s compoent R^2 = %5.3f" % (len(peaks), orbital, r2))
 			except:
 				r2 = 0.0
-				peaks = [(0, 0, 0) for _ in range(numpeaks)]
+				peaks = [(0, 0, 0) for _ in range(self._numpeaks)]
 
 			# discard if R^2 is too low
 			if r2 < 0.90:  # 0.98:
 				print("fitting failed: r2 (%5.3f) is too low ... quit" % r2)
-				peaks = [(0, 0, 0) for _ in range(numpeaks)]
+				peaks = [(0, 0, 0) for _ in range(self._numpeaks)]
 
 			# sort peaks and limit to numpeaks
-			peaks = peaks[0:numpeaks]
+			peaks = peaks[0:self._numpeaks]
 			tmp = []
 			for peak in peaks:
 				tmp.append(peak[0]); tmp.append(peak[1]); tmp.append(peak[2])
@@ -132,14 +148,14 @@ class VaspDosPlus:
 			vir_peaks = list(filter(lambda x: x[0] >= self.efermi + self.margin, peaks))
 
 			# zero padding upto numpeaks
-			occ_peaks = occ_peaks + [(0, 0, 0)]*(numpeaks - len(occ_peaks))
-			vir_peaks = vir_peaks + [(0, 0, 0)]*(numpeaks - len(vir_peaks))
+			occ_peaks = occ_peaks + [(0, 0, 0)]*(self._numpeaks - len(occ_peaks))
+			vir_peaks = vir_peaks + [(0, 0, 0)]*(self._numpeaks - len(vir_peaks))
 
 			# take upper edge by inverse Hilbert transform
-			if self._do_hilbert:
-				upper_edge, lower_edge = calc_edge(numpeaks, pdos)
+			if self.do_hilbert:
+				upper_edge, lower_edge = calc_edge(self._numpeaks, pdos)
 
-			if self._do_cohp:
+			if self.do_cohp:
 				cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center = cohp_analysis(cohpcar)
 
 			# occupied and virtual
@@ -171,37 +187,53 @@ class VaspDosPlus:
 			descriptors.update({orbitalname + "-" + "center": center})
 			descriptors.update({orbitalname + "-" + "second": second})
 
-		#upper_edge -= efermi
-			#lower_edge -= efermi
+		# end loop for orbitals
 
-		if self._geometry_information:
-			descriptors = self.include_geometry_information(atoms, descriptors)
+		if self.geometry_information:
+			descriptors = self.add_geometry_info_to_dict(descriptors)
 
-		if self._do_cohp:
+		if self.do_cohp:
 			descriptors.update({"cohp_pos_center": cohp_pos_center})
 			descriptors.update({"cohp_neg_center": cohp_neg_center})
 			descriptors.update({"cohp_pos_peak": cohp_pos_peak})
 			descriptors.update({"cohp_neg_peak": cohp_neg_peak})
 
-		if self._do_hilbert:
+		if self.do_hilbert:
+			#upper_edge -= efermi
+			#lower_edge -= efermi
 			descriptors.update({"upper_edge": upper_edge})
 			descriptors.update({"lower_edge": lower_edge})
 
-		print("DONE for system =", system)
+		print("DONE for system =", self._system)
 		return descriptors
 
-	def include_geometry_information(self, atoms, descriptors: dict):
+	def add_system_to_dict(self, dict=None):
+		tmp = {"system": self._system}
+		dict.update(tmp)
+		return dict
+
+	def add_adsorption_energy_to_dict(self, dict=None):
+		db = self.db
+		id = db.get(system=self._system).id
+		row = db.get(id=id)
+		eads = row.data.E_ads
+		dict.update({"E_ads": eads})
+		return dict
+
+	def add_geometry_info_to_dict(self, dict=None):
+		db = self.db
+		atoms = db.get_atoms(id=id)
 		a, b, c, alpha, beta, gamma = atoms.get_cell_lengths_and_angles()
 		surf_area = a * b * math.sin(math.radians(gamma))
 		volume = atoms.get_volume()
 		atom_num = atoms.numbers.sum()
 
-		descriptors.update({"surf_area": surf_area})
-		descriptors.update({"volume": volume})
-		descriptors.update({"atomic_numbers": atom_num})
-		descriptors.update({"atomic_number_site": coord_num})
+		dict.update({"surf_area": surf_area})
+		dict.update({"volume": volume})
+		dict.update({"atomic_numbers": atom_num})
+		dict.update({"atomic_number_site": coord_num})
 
-		return data
+		return dict
 
 	def cohp_analysis(self, cohpcar):
 		ene2, cohp = read_cohp(cohpcar)
@@ -237,7 +269,7 @@ class VaspDosPlus:
 
 		fit = fit_func(self.energy, *params)
 
-		if self._do_hilbert:
+		if self.do_hilbert:
 			ih = fftpack.ihilbert(pdos)
 
 		sb.set(context='notebook', style='darkgrid', palette='deep',
@@ -245,14 +277,16 @@ class VaspDosPlus:
 		plt.plot(self.energy, fit, label="fitted")
 		plt.plot(self.energy, pdos, label="original")
 		plt.vlines(position_occ, 0, np.max(pdos), linestyle="dashed", linewidth=0.5)
-		if self._do_hilbert:
+
+		if self.do_hilbert:
 			plt.plot(self.energy, ih, label="inverse Hilbert")
+
 		plt.xlim([min(self.energy), max(self.energy) + self.margin])
 
 		plt.legend()
 		plt.show()
 
-		if self._do_cohp:
+		if self.do_cohp:
 			cohp_smeared = smear_dos(ene2, cohp, sigma=sigma)
 			plt.plot(ene2, cohp_smeared, label="COHP")
 			plt.legend()
@@ -275,7 +309,7 @@ class VaspDosPlus:
 			tmp += self.vaspdos.site_dos(i, orbital)[:len(self.energy)]
 
 		tmp = tmp[:len(self.energy)]
-		tmp = self.normalize_height(tmp) if self._normalize else tmp
+		tmp = self.normalize_height(tmp) if self.normalize else tmp
 
 		center = get_distribution_moment(self.energy, tmp, order=1)
 		second = get_distribution_moment(self.energy, tmp, order=2)
