@@ -5,9 +5,9 @@ import numpy as np
 import math
 from vasptools import *
 from ase.db import connect
-from vasptools import fit_func
 from vasptools import get_efermi_from_doscar
 from ase.dft import get_distribution_moment
+import matplotlib.pylab as plt
 
 class VaspDosPlus:
 	def __init__(self, doscar=None, numpeaks=1, system=None, orbitals=None):
@@ -34,6 +34,9 @@ class VaspDosPlus:
 			self.natom = int(line1.split()[0])
 
 		self._normalize = False
+		self._do_hilbert = False
+		self._do_cohp = False
+		self._geometry_information = False
 
 	def load_surface_data(self, json=None):
 		self._jsonfile = json
@@ -48,10 +51,7 @@ class VaspDosPlus:
 		Examples:
 		python analyze.dos 1 Au_111 s p d
 		"""
-		do_cohp = False
-		do_hilbert = False
 		check = False
-		geometry_info = False
 		relative_to_fermi = False
 
 		json = self._jsonfile
@@ -60,7 +60,7 @@ class VaspDosPlus:
 		numpeaks = self._numpeaks
 		system   = self._system
 		doscar   = self._doscar
-		if do_cohp:
+		if self._do_cohp:
 			cohpcar  = self._system + "COHPCAR"
 
 		print(" ----- %s ----- " % system)
@@ -75,8 +75,8 @@ class VaspDosPlus:
 
 		system  = obj.system
 		lattice = obj.lattice
-		data    = obj.data
 
+		descriptors = {}
 		for orbital in self.orbitals.values():
 			# get pdos
 			pdos = self.get_projected_dos(self.vaspdos, orbital)
@@ -105,7 +105,7 @@ class VaspDosPlus:
 
 			# Try gaussian fit. If fails, return blanked list
 			try:
-				params, rss, r2 = gaussian_fit(pdos, params)
+				params, rss, r2 = gaussian_fit(np.array(self.energy), pdos, params)
 				peaks = sort_peaks(params, key="height")
 				print("found %d peaks -- %s compoent R^2 = %5.3f" % (len(peaks), orbital, r2))
 			except:
@@ -136,10 +136,10 @@ class VaspDosPlus:
 			vir_peaks = vir_peaks + [(0, 0, 0)]*(numpeaks - len(vir_peaks))
 
 			# take upper edge by inverse Hilbert transform
-			if do_hilbert:
+			if self._do_hilbert:
 				upper_edge, lower_edge = calc_edge(numpeaks, pdos)
 
-			if do_cohp:
+			if self._do_cohp:
 				cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center = cohp_analysis(cohpcar)
 
 			# occupied and virtual
@@ -161,50 +161,45 @@ class VaspDosPlus:
 
 			# if you want to check by eye
 			if check:
-				plot_dos(do_cohp, do_hilbert)
+				plot_dos()
 
 			# write to database
 			orbitalname = get_key_from_value(self.orbitals, orbital)
-			data.update({orbitalname + "-" + "position_occ": position_occ})
-			data.update({orbitalname + "-" + "height_occ": height_occ})
-			data.update({orbitalname + "-" + "width_occ": width_occ})
-			data.update({orbitalname + "-" + "center": center})
-			data.update({orbitalname + "-" + "second": second})
+			descriptors.update({orbitalname + "-" + "position_occ": position_occ})
+			descriptors.update({orbitalname + "-" + "height_occ": height_occ})
+			descriptors.update({orbitalname + "-" + "width_occ": width_occ})
+			descriptors.update({orbitalname + "-" + "center": center})
+			descriptors.update({orbitalname + "-" + "second": second})
 
 		#upper_edge -= efermi
 			#lower_edge -= efermi
 
-		if geometry_info:
-			data = include_geometry_information(data)
+		if self._geometry_information:
+			descriptors = self.include_geometry_information(atoms, descriptors)
 
-		if do_cohp:
-			data.update({"cohp_pos_center": cohp_pos_center})
-			data.update({"cohp_neg_center": cohp_neg_center})
-			data.update({"cohp_pos_peak": cohp_pos_peak})
-			data.update({"cohp_neg_peak": cohp_neg_peak})
+		if self._do_cohp:
+			descriptors.update({"cohp_pos_center": cohp_pos_center})
+			descriptors.update({"cohp_neg_center": cohp_neg_center})
+			descriptors.update({"cohp_pos_peak": cohp_pos_peak})
+			descriptors.update({"cohp_neg_peak": cohp_neg_peak})
 
-		if do_hilbert:
-			data.update({"upper_edge": upper_edge})
-			data.update({"lower_edge": lower_edge})
-
-		db2 = connect("tmpout.json")
-		if relative_to_fermi:
-			db2.write(atoms, system=system, lattice=lattice, data=data)
-		else:
-			db2.write(atoms, system=system, lattice=lattice, data=data, efermi=self.efermi)
+		if self._do_hilbert:
+			descriptors.update({"upper_edge": upper_edge})
+			descriptors.update({"lower_edge": lower_edge})
 
 		print("DONE for system =", system)
+		return descriptors
 
-	def include_geometry_information(self, data: dict):
+	def include_geometry_information(self, atoms, descriptors: dict):
 		a, b, c, alpha, beta, gamma = atoms.get_cell_lengths_and_angles()
 		surf_area = a * b * math.sin(math.radians(gamma))
 		volume = atoms.get_volume()
 		atom_num = atoms.numbers.sum()
 
-		data.update({"surf_area": surf_area})
-		data.update({"volume": volume})
-		data.update({"atomic_numbers": atom_num})
-		data.update({"atomic_number_site": coord_num})
+		descriptors.update({"surf_area": surf_area})
+		descriptors.update({"volume": volume})
+		descriptors.update({"atomic_numbers": atom_num})
+		descriptors.update({"atomic_number_site": coord_num})
 
 		return data
 
@@ -233,23 +228,16 @@ class VaspDosPlus:
 
 		return cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center
 
-	def plot_dos(self, do_cohp=False, do_hilbert=False):
+	def plot_dos(self):
 		"""
 		Plot dos.
-
-		Args:
-			do_cohp:
-			do_hilbert:
-		Returns:
-
 		"""
-		import matplotlib.pylab as plt
 		import seaborn as sb
 		from scipy import fftpack
 
 		fit = fit_func(self.energy, *params)
 
-		if do_hilbert:
+		if self._do_hilbert:
 			ih = fftpack.ihilbert(pdos)
 
 		sb.set(context='notebook', style='darkgrid', palette='deep',
@@ -257,14 +245,14 @@ class VaspDosPlus:
 		plt.plot(self.energy, fit, label="fitted")
 		plt.plot(self.energy, pdos, label="original")
 		plt.vlines(position_occ, 0, np.max(pdos), linestyle="dashed", linewidth=0.5)
-		if do_hilbert:
+		if self._do_hilbert:
 			plt.plot(self.energy, ih, label="inverse Hilbert")
 		plt.xlim([min(self.energy), max(self.energy) + self.margin])
 
 		plt.legend()
 		plt.show()
 
-		if do_cohp:
+		if self._do_cohp:
 			cohp_smeared = smear_dos(ene2, cohp, sigma=sigma)
 			plt.plot(ene2, cohp_smeared, label="COHP")
 			plt.legend()
@@ -383,6 +371,47 @@ class VaspDosPlus:
 
 		indexes = peakutils.indexes(y, thres=0.1, min_dist=1)
 		return indexes
+
+def gaussian_fit(x, y, guess):
+	from scipy.optimize import curve_fit
+
+	def fit_func(x, *params):
+		y = np.zeros_like(x)
+		for i in range(0, len(params), 3):
+			ctr = params[i]  # position
+			amp = params[i + 1]  # height
+			wid = params[i + 2]  # width (smaller is sharper)
+			y = y + amp * np.exp(-((x - ctr) / wid) ** 2)
+		return y
+
+	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=1.0e-5, xtol=1.0e-5)
+	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=1.0e-6, xtol=1.0e-6)
+	popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=1.0e-5, xtol=1.0e-5)  # good
+	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=1.0e-6, xtol=1.0e-6)
+
+	fit = fit_func(x, *popt)
+	residual = y - fit
+	rss = np.sum(residual**2)  # residual sum of squares
+	tss = np.sum((y-np.mean(y))**2)  # total sum of squares
+	r2 = 1 - (rss / tss)
+
+	return popt, rss, r2
+
+def sort_peaks(peaks, key="height"):
+	"""
+	assuming peaks are stored in [position, height, width,  position, height, width,...]
+	"""
+	dtype = [("position", float), ("height", float), ("width", float)]
+
+	newpeaks = np.array([], dtype=dtype)
+
+	for i in range(0, len(peaks), 3):
+		peak = np.array((peaks[i], peaks[i+1], peaks[i+2]), dtype=dtype)
+		newpeaks = np.append(newpeaks, peak)
+
+	newpeaks = np.sort(newpeaks, order=key)
+	newpeaks = newpeaks[::-1]  # sort in descending order
+	return newpeaks
 
 def get_key_from_value(d, val):
 	keys = [k for k, v in d.items() if v == val]

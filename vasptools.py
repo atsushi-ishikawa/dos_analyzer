@@ -137,49 +137,7 @@ def sort_atoms_by_z(atoms):
 
 	return newatoms
 
-def fit_func(x, *params):
-	import numpy as np
-	y = np.zeros_like(x)
-	for i in range(0, len(params), 3):
-		ctr = params[i]    # position
-		amp = params[i+1]  # height
-		wid = params[i+2]  # width (smaller is sharper)
-		y   = y + amp * np.exp(-((x-ctr)/wid)**2)
-	return y
 
-def gaussian_fit(x, y, guess):
-	from scipy.optimize import curve_fit
-	import numpy as np
-
-	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=1.0e-5, xtol=1.0e-5)
-	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=1.0e-6, xtol=1.0e-6)
-	popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=1.0e-5, xtol=1.0e-5)  # good
-	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=1.0e-6, xtol=1.0e-6)
-
-	fit = fit_func(x, *popt)
-	residual = y - fit
-	rss = np.sum(residual**2)  # residual sum of squares
-	tss = np.sum((y-np.mean(y))**2)  # total sum of squares
-	r2 = 1 - (rss / tss)
-
-	return popt, rss, r2
-
-def sort_peaks(peaks, key="height"):
-	import numpy as np
-	"""
-	assuming peaks are stored in [position, height, width,  position, height, width,...]
-	"""
-	dtype = [("position", float), ("height", float), ("width", float)]
-
-	newpeaks = np.array([], dtype=dtype)
-
-	for i in range(0, len(peaks), 3):
-		peak = np.array((peaks[i], peaks[i+1], peaks[i+2]), dtype=dtype)
-		newpeaks = np.append(newpeaks, peak)
-
-	newpeaks = np.sort(newpeaks, order=key)
-	newpeaks = newpeaks[::-1]  # sort in descending order
-	return newpeaks
 
 def get_efermi_from_doscar(DOSCAR):
 	import linecache

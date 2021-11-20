@@ -17,11 +17,22 @@ plt.rcParams["axes.linewidth"] = 1
 plt.rcParams["legend.frameon"] = False
 plt.rcParams["legend.framealpha"] = 1.0
 
-df = pd.read_csv("tmpout.csv")
-if "system" in df.columns:
-	df = df.drop("system", axis=1)
-if "Unnamed: 0" in df.columns:
-	df = df.drop("Unnamed: 0", axis=1)
+def make_dataframe_from_json(jsonfile=None):
+	import json
+	df = json.load(open(jsonfile, "r"))
+	df = pd.DataFrame(df["_default"])
+	df = df.T
+	df = df.set_index("system")
+	return df
+
+df = make_dataframe_from_json(jsonfile="sample.json")
+
+def make_dataframe_form_csv(csvfile=None):
+	df = pd.read_csv(csvfile)
+	if "system" in df.columns:
+		df = df.drop("system", axis=1)
+	if "Unnamed: 0" in df.columns:
+		df = df.drop("Unnamed: 0", axis=1)
 
 #vars = ["E_ads","efermi","d-position1","p-position1","s-position1"]
 #seaborn.pairplot(df, plot_kws={"s":10}, vars=vars, height=1.8)
@@ -74,9 +85,8 @@ for name, method in zip(names, methods):
 	seaborn.regplot(y.values, grid.predict(X))
 	plt.title("%s regression" % name)
 	plt.show()
-#
+
 # plot coefficient of LASSO
-#
 lasso_coef = pd.DataFrame({"name": X.columns, "Coef": grid.best_estimator_.named_steps["lasso"].coef_})
 fig, ax = plt.subplots(figsize=(10, 10))
 ax.barh(lasso_coef["name"].iloc[::-1], lasso_coef["Coef"].iloc[::-1], height=0.6, color="royalblue")
@@ -93,7 +103,6 @@ best_param = list(grid.best_params_.values())[0]
 pipe = Pipeline([("scl", scaler), ("lasso", Lasso(alpha=best_param))])
 train_sizes, train_scores, test_scores = learning_curve(estimator=pipe, X=X_train, y=y_train,
 														train_sizes=np.linspace(0.2, 1.0, 10), cv=cv)
-
 train_mean = np.mean(train_scores, axis=1)
 train_std  = np.std(train_scores,  axis=1)
 test_mean  = np.mean(test_scores,  axis=1)
@@ -115,9 +124,8 @@ plt.ylim([0.0, 1.0])
 #plt.show()
 plt.savefig("learning_curve_lasso.png")
 plt.close()
-#
+
 # Random forest or Gradient boosting forest
-#
 n_estimators = 100
 print("-------- Random Forest Regression ---------")
 rf = RandomForestRegressor(n_estimators=n_estimators)
@@ -141,9 +149,8 @@ plt.tight_layout()
 plt.show()
 plt.savefig("feature_importance.png")
 plt.close()
-#
+
 # learning_curve for Random forest
-#
 train_sizes, train_scores, test_scores = learning_curve(estimator=rf, X=X_train, y=y_train,
 														train_sizes=np.linspace(0.2, 1.0, 10), cv=cv)
 train_mean = np.mean(train_scores, axis=1)
@@ -167,9 +174,8 @@ plt.ylim([0.0, 1.0])
 #plt.show()
 plt.savefig("learning_curve_random_forest.png")
 plt.close()
-#
+
 # plot correlation matrix
-#
 corr = df.corr()
 _, ax = plt.subplots(figsize=(12, 12))
 seaborn.heatmap(corr, vmax=1, vmin=-1, center=0, annot=False, annot_kws={"size": 10},
@@ -177,9 +183,8 @@ seaborn.heatmap(corr, vmax=1, vmin=-1, center=0, annot=False, annot_kws={"size":
 plt.savefig("correlation.png")
 plt.show()
 plt.close()
-#
+
 # bolasso (in R)
-#
 import pyper
 r = pyper.R(use_pandas="True")
 r("source(file='do_bolasso.r')")

@@ -3,16 +3,21 @@ import os
 import glob
 from tinydb import TinyDB
 
-db = TinyDB("sample.json")
+jsonfile = "sample.json"
+os.system("rm {}".format(jsonfile))
+db = TinyDB(jsonfile)
 
 doscardir = "doscars"
 doscars = glob.glob(doscardir + "/" + "DOSCAR*")
 
-descriptors = {}
 for idoscar in doscars:
 	system = idoscar.split("_")[1] + "_" + idoscar.split("_")[2]
-	print(system)
-	dos = VaspDosPlus(doscar=idoscar, system=system, numpeaks=1)
+	data = {"system": system}
+
+	dos = VaspDosPlus(doscar=idoscar, system=system, numpeaks=2)
 	dos.load_surface_data(json="surf_data.json")
+
 	descriptor = dos.get_descriptors()
-	db.insert(descriptor)
+
+	data.update(descriptor)
+	db.insert(data)
