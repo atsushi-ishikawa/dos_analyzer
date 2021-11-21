@@ -23,9 +23,8 @@ def make_dataframe_from_json(jsonfile=None):
 	df = pd.DataFrame(df["_default"])
 	df = df.T
 	df = df.set_index("system")
+	df = pd.DataFrame(df, dtype=float)
 	return df
-
-df = make_dataframe_from_json(jsonfile="sample.json")
 
 def make_dataframe_form_csv(csvfile=None):
 	df = pd.read_csv(csvfile)
@@ -33,6 +32,9 @@ def make_dataframe_form_csv(csvfile=None):
 		df = df.drop("system", axis=1)
 	if "Unnamed: 0" in df.columns:
 		df = df.drop("Unnamed: 0", axis=1)
+	return df
+
+df = make_dataframe_from_json(jsonfile="sample.json")
 
 #vars = ["E_ads","efermi","d-position1","p-position1","s-position1"]
 #seaborn.pairplot(df, plot_kws={"s":10}, vars=vars, height=1.8)
@@ -42,13 +44,12 @@ def make_dataframe_form_csv(csvfile=None):
 #plt.close()
 
 X = df.drop("E_ads", axis=1)
-y  = df["E_ads"]
+y = df["E_ads"]
 
 cv = 5
 test_size = 1.0/cv
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=1)
-X_train = np.asarray(X_train)
 
 scaler = StandardScaler()
 #scaler = MinMaxScaler()
@@ -82,8 +83,8 @@ for name, method in zip(names, methods):
 	print("Test set score: {:.3f}".format(grid.score(X_test, y_test)))
 	print("RMSE: {:.3f}".format(np.sqrt(mean_squared_error(y_test, grid.predict(X_test)))))
 
-	#seaborn.scatterplot(y.values, grid.predict(X))
-	seaborn.regplot(y.values, grid.predict(X))
+	#seaborn.scatterplot(y=y.values, x=grid.predict(X))
+	seaborn.regplot(y=y.values, x=grid.predict(X))
 	plt.title("%s regression" % name)
 	plt.show()
 
