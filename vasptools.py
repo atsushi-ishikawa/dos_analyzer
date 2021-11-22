@@ -145,29 +145,7 @@ def get_efermi_from_doscar(DOSCAR):
 	efermi = float(line[3])
 	return efermi
 
-def calc_edge(numpeaks, ene, pdos):
-	import numpy as np
-	from scipy import fftpack
 
-	# take upper edge by inverse Hilbert transform
-	ih = fftpack.ihilbert(pdos)
-	ihpeaks = findpeak(ene, abs(ih))
-
-	upper_edge = np.zeros(numpeaks)
-	lower_edge = np.zeros(numpeaks)
-
-	for peak in ihpeaks:
-		if ih[peak] > 0.0 and ih[peak] > 0.8*max(ih):  # just choose large peak, positive part
-			upper_edge = np.insert(upper_edge, 0, ene[peak])
-		elif ih[peak] <= 0.0 and ih[peak] < 0.8*min(ih):
-			lower_edge = np.insert(lower_edge, 0, ene[peak])
-
-	upper_edge = upper_edge[0:numpeaks]
-	lower_edge = lower_edge[0:numpeaks]
-	#upper_edge = upper_edge[::-1]
-	#lower_edge = lower_edge[::-1]
-
-	return upper_edge, lower_edge
 
 def make_lobsterin():
 	"""

@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, E
 
 from matplotlib import rcParams
 plt.rcParams["font.family"] = "arial"
-plt.rcParams["font.size"]   = 12
+plt.rcParams["font.size"] = 12
 plt.rcParams["axes.labelsize"] = 14
 plt.rcParams["axes.linewidth"] = 1
 plt.rcParams["legend.frameon"] = False
@@ -53,13 +53,6 @@ def remove_outliers(df=None):
 df = make_dataframe_from_json(jsonfile="sample.json")
 df = remove_outliers(df)
 
-#vars = ["E_ads","efermi","d-position1","p-position1","s-position1"]
-#seaborn.pairplot(df, plot_kws={"s":10}, vars=vars, height=1.8)
-#seaborn.pairplot(df, plot_kws={"s":10}, height=1.8)
-#seaborn.pairplot(df, height=1.8, kind="reg")
-#plt.savefig("pairplot.png")
-#plt.close()
-
 X = df.drop("E_ads", axis=1)
 y = df["E_ads"]
 
@@ -100,7 +93,6 @@ for name, method in zip(names, methods):
 	print("Test set score: {:.3f}".format(grid.score(X_test, y_test)))
 	print("RMSE: {:.3f}".format(np.sqrt(mean_squared_error(y_test, grid.predict(X_test)))))
 
-	#seaborn.scatterplot(y=y.values, x=grid.predict(X))
 	seaborn.regplot(y=y.values, x=grid.predict(X))
 	plt.title("%s regression" % name)
 	plt.show()
@@ -113,8 +105,8 @@ ax.set_xlabel("Coefficient")
 
 ax.axvline(x=0, color="black", linewidth=0.5)
 plt.tight_layout()
-#plt.show()
 plt.savefig("lasso_coef.png")
+plt.show()
 plt.close()
 
 # learning_curve for LASSO
@@ -140,8 +132,8 @@ plt.ylabel("Accuracy")
 #
 #plt.legend(loc="lower right", fontsize=14)
 plt.ylim([0.0, 1.0])
-#plt.show()
 plt.savefig("learning_curve_lasso.png")
+plt.show()
 plt.close()
 
 # Random forest or Gradient boosting forest
@@ -156,26 +148,30 @@ print("Training set score: {:.3f}".format(rf.score(X_train, y_train)))
 print("Test set score: {:.3f}".format(rf.score(X_test, y_test)))
 print("RMSE : {:.3f}".format(np.sqrt(mean_squared_error(y_test, rf.predict(X_test)))))
 
+seaborn.regplot(y=y.values, x=rf.predict(X))
+plt.title("Random forest")
+plt.show()
+
 std = np.std([tree.feature_importances_ for tree in rf.estimators_], axis=0)
 feature_imp = pd.DataFrame({"name": X.columns, "Coef": rf.feature_importances_})
 
 _, ax = plt.subplots(figsize=(10, 10))
 ax.barh(feature_imp["name"].iloc[::-1], feature_imp["Coef"].iloc[::-1], height=0.6, color="limegreen")
-		
+
 ax.set_xlabel("Feature importance")
 ax.axvline(x=0, color="black", linewidth=0.5)
 plt.tight_layout()
-plt.show()
 plt.savefig("feature_importance.png")
+plt.show()
 plt.close()
 
 # learning_curve for Random forest
 train_sizes, train_scores, test_scores = learning_curve(estimator=rf, X=X_train, y=y_train,
 														train_sizes=np.linspace(0.2, 1.0, 10), cv=cv)
 train_mean = np.mean(train_scores, axis=1)
-train_std  = np.std(train_scores,  axis=1)
-test_mean  = np.mean(test_scores,  axis=1)
-test_std   = np.std(test_scores,   axis=1)
+train_std  = np.std(train_scores, axis=1)
+test_mean  = np.mean(test_scores, axis=1)
+test_std   = np.std(test_scores, axis=1)
 
 plt.plot(train_sizes, train_mean, color="blue", marker="o", markersize=5, label="training accuracy")
 plt.fill_between(train_sizes, train_mean+train_std, train_mean-train_std, alpha=0.15, color="blue")
@@ -190,8 +186,8 @@ plt.ylabel("Accuracy")
 #
 #plt.legend(loc="lower right", fontsize=14)
 plt.ylim([0.0, 1.0])
-#plt.show()
 plt.savefig("learning_curve_RF.png")
+plt.show()
 plt.close()
 
 # plot correlation matrix

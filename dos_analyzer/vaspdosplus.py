@@ -17,12 +17,12 @@ class VaspDosPlus:
 		self._numpeaks = None
 
 		self.db = None
-		self.margin = 5.0
+		self.margin = 2.0  # note: if include edge, increase this value (e.g. 2.0)
 		self.vaspdos = VaspDos(doscar=doscar)
 		self.efermi  = get_efermi_from_doscar(doscar)
 
 		# limit analysis on occupied part only
-		energy  = self.vaspdos.energy
+		energy = self.vaspdos.energy
 		self.energy = list(filter(lambda x: x <= self.efermi + self.margin, energy))
 
 		if orbitals is None:
@@ -33,13 +33,13 @@ class VaspDosPlus:
 			line1 = f.readline()
 			self.natom = int(line1.split()[0])
 
-		self.normalize_height = True
-		self.do_hilbert = False
+		self.normalize_height = True  # True is maybe better
+		self.relative_to_fermi = False  # False is better
+		self.do_hilbert = True
 		self.do_cohp = False
-		self.geometry_information = True
-		self.relative_to_fermi = False
+		self.geometry_information = False
 
-		self.sigma = 30  # smearing width
+		self.sigma = 40  # smearing width
 
 	@property
 	def numpeaks(self):
@@ -95,8 +95,8 @@ class VaspDosPlus:
 
 		for orbital in self.orbitals.values():
 			# get pdos for slab, surface, adsorption site
-			pdos = self.get_projected_dos(self.vaspdos, atom_range=range(0, self.natom), orbital=orbital)
-			#pdos = self.get_projected_dos(self.vaspdos, atom_range=range(48, 64), orbital=orbital)
+			#pdos = self.get_projected_dos(self.vaspdos, atom_range=range(0, self.natom), orbital=orbital)  # all the model
+			pdos = self.get_projected_dos(self.vaspdos, atom_range=range(48, 64), orbital=orbital)  # surface layer
 
 			# smear
 			pdos = self.smear_dos(pdos, sigma=self.sigma)
@@ -147,10 +147,6 @@ class VaspDosPlus:
 			occ_peaks = occ_peaks + [(0, 0, 0)]*(self._numpeaks - len(occ_peaks))
 			vir_peaks = vir_peaks + [(0, 0, 0)]*(self._numpeaks - len(vir_peaks))
 
-			# take upper edge by inverse Hilbert transform
-			if self.do_hilbert:
-				upper_edge, lower_edge = calc_edge(self._numpeaks, pdos)
-
 			if self.do_cohp:
 				cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center = cohp_analysis(cohpcar)
 
@@ -177,18 +173,22 @@ class VaspDosPlus:
 
 			# write to database
 			orb_name = self.from_012_to_spd(orbital)
-			for ipeak in range(self._numpeaks):
-				descriptors.update({orb_name + "-" + "position_occ_" + str(ipeak): position_occ[ipeak]})
-				descriptors.update({orb_name + "-" + "height_occ_" + str(ipeak): height_occ[ipeak]})
-				descriptors.update({orb_name + "-" + "width_occ_" + str(ipeak): width_occ[ipeak]})
 
-			descriptors.update({orb_name + "-" + "center": center})
-			#descriptors.update({orb_name + "-" + "second": second})
+			for ipeak in range(self._numpeaks):
+				descriptors.update({orb_name + "_position_occ_" + str(ipeak): position_occ[ipeak]})
+				descriptors.update({orb_name + "_height_occ_" + str(ipeak): height_occ[ipeak]})
+				descriptors.update({orb_name + "_width_occ_" + str(ipeak): width_occ[ipeak]})
+
+			descriptors.update({orb_name + "_center": center})
+			#descriptors.update({orb_name + "_second": second})
 
 		# end loop for orbitals
 
 		if self.geometry_information:
 			descriptors = self.add_geometry_info_to_dict(descriptors)
+
+		if not self.relative_to_fermi:
+			descriptors.update({"e_fermi": self.efermi})
 
 		if self.do_cohp:
 			descriptors.update({"cohp_pos_center": cohp_pos_center})
@@ -196,9 +196,14 @@ class VaspDosPlus:
 			descriptors.update({"cohp_pos_peak": cohp_pos_peak})
 			descriptors.update({"cohp_neg_peak": cohp_neg_peak})
 
+		# take upper edge of TOTAL DOS by inverse Hilbert transform
 		if self.do_hilbert:
-			#upper_edge -= efermi
-			#lower_edge -= efermi
+			tdos = self.vaspdos.dos
+			upper_edge, lower_edge = self.get_dos_edge(tdos)
+			if self.relative_to_fermi:
+				upper_edge -= efermi
+				lower_edge -= efermi
+
 			descriptors.update({"upper_edge": upper_edge})
 			descriptors.update({"lower_edge": lower_edge})
 
@@ -242,16 +247,16 @@ class VaspDosPlus:
 		cohp_pos = np.array(list(map(lambda x: x if x > 0.0 else 0.0, cohp)))
 		cohp_neg = np.array(list(map(lambda x: x if x < 0.0 else 0.0, cohp)))
 
-		cohp_pos = smear_dos(cohp_pos, sigma=self.sigma)
-		cohp_neg = smear_dos(cohp_neg, sigma=self.sigma)
+		cohp_pos = self.smear_dos(cohp_pos, sigma=self.sigma)
+		cohp_neg = self.smear_dos(cohp_neg, sigma=self.sigma)
 
 		# find peak for pos
-		peaks  = findpeak(cohp_pos)
+		peaks  = self.findpeak(cohp_pos)
 		maxind = peaks[np.argmax(cohp_pos[peaks])]  # highest peak
 		cohp_pos_peak = ene2[maxind]
 
 		# find peak for neg
-		peaks = findpeak(cohp_neg)
+		peaks = self.findpeak(cohp_neg)
 		minind = peaks[np.argmin(cohp_neg[peaks])]  # highest peak
 		cohp_neg_peak = ene2[minind]
 
@@ -287,7 +292,7 @@ class VaspDosPlus:
 		plt.show()
 
 		if self.do_cohp:
-			cohp_smeared = smear_dos(ene2, cohp, sigma=self.sigma)
+			cohp_smeared = self.smear_dos(cohp, sigma=self.sigma)
 			plt.plot(ene2, cohp_smeared, label="COHP")
 			plt.legend()
 			plt.show()
@@ -375,7 +380,7 @@ class VaspDosPlus:
 		Returns:
 
 		"""
-		x = self.energy
+		x = self.energy  # note: occpied part only
 		y = dos
 		smeared = np.zeros(len(x))
 
@@ -397,6 +402,34 @@ class VaspDosPlus:
 		keys = [k for k, v in d.items() if v == val]
 		if keys:
 			return keys[0]
+
+	def get_dos_edge(self, tdos):
+		from scipy import fftpack
+
+		tdos = tdos[:len(self.energy)]
+		tdos = self.smear_dos(tdos)
+
+		# take upper edge by inverse Hilbert transform
+		ih = fftpack.ihilbert(tdos)
+		ihpeaks = self.findpeak(abs(ih))
+
+		upper_edge = np.zeros(self._numpeaks)
+		lower_edge = np.zeros(self._numpeaks)
+
+		for peak in ihpeaks:
+			if ih[peak] > 0.0 and ih[peak] > 0.8*max(ih):  # just choose large peak, positive part
+				upper_edge = np.insert(upper_edge, 0, self.energy[peak])
+			elif ih[peak] <= 0.0 and ih[peak] < 0.8*min(ih):
+				lower_edge = np.insert(lower_edge, 0, self.energy[peak])
+
+		#upper_edge = upper_edge[0:self._numpeaks]
+		#lower_edge = lower_edge[0:self._numpeaks]
+		#upper_edge = upper_edge[::-1]
+		#lower_edge = lower_edge[::-1]
+		upper_edge = upper_edge[0]
+		lower_edge = lower_edge[0]
+
+		return upper_edge, lower_edge
 
 def gaussian_fit(x, y, guess):
 	from scipy.optimize import curve_fit
