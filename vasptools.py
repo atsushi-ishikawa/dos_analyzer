@@ -137,16 +137,6 @@ def sort_atoms_by_z(atoms):
 
 	return newatoms
 
-def get_efermi_from_doscar(DOSCAR):
-	import linecache
-	line   = linecache.getline(DOSCAR, 6)
-	line   = line.strip()
-	line   = line.split()
-	efermi = float(line[3])
-	return efermi
-
-
-
 def make_lobsterin():
 	"""
 	make input file for lobster (lobsterin) for alloy systems

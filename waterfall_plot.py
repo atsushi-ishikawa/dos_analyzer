@@ -8,19 +8,18 @@ from vasptools import get_efermi_from_doscar
 
 def drawPropagation(xmin, xmax, z, doslist):
 	sy = z.size
-	#
+
 	# temporary read DOSCAR for getting size
-	#
 	dos = VaspDos(doscar=doslist[0])
 	T   = dos.energy
-	idx = np.where( (xmin < T) & (T < xmax) ) # limit xmin-xmax
+	idx = np.where((xmin < T) & (T < xmax))  # limit xmin-xmax
 	T   = T[idx]
 
 	sx = T.size
-	T = np.tile(T, (sy, 1)) # extend T
+	T = np.tile(T, (sy, 1))  # extend T
 	z = np.tile(z, (sx, 1)).T
 
-	for i,idoscar in enumerate(doslist):
+	for i, idoscar in enumerate(doslist):
 		dos    = VaspDos(doscar=idoscar)
 		efermi = get_efermi_from_doscar(idoscar)
 		T[i]  += efermi
@@ -28,22 +27,23 @@ def drawPropagation(xmin, xmax, z, doslist):
 	U = dos.dos[idx]
 	U = np.tile(U, (sy, 1))
 
-	for i,idoscar in enumerate(doslist):
-		dos    = VaspDos(doscar=idoscar)
-		U[i]   = dos.dos[idx]
-		U[i,0] = 0.0 ; U[i,-1] = 0.0 # to make bottom line flat
+	for i, idoscar in enumerate(doslist):
+		dos      = VaspDos(doscar=idoscar)
+		U[i]     = dos.dos[idx]
+		U[i, 0]  = 0.0
+		U[i, -1] = 0.0  # to make bottom line flat
 		
-	fig = plt.figure(figsize=(12,12))
-	ax  = fig.add_subplot(1,1,1, projection="3d", proj_type="ortho")
+	fig = plt.figure(figsize=(12, 12))
+	ax  = fig.add_subplot(1, 1, 1, projection="3d", proj_type="ortho")
 
 	verts = []
-	for i,idoscar in enumerate(doslist):
+	for i, idoscar in enumerate(doslist):
 		efermi = get_efermi_from_doscar(idoscar)
-		verts.append(list(zip(T[i,:]-efermi, U[i,:]/np.max(U[i,:]))))
+		verts.append(list(zip(T[i, :]-efermi, U[i, :]/np.max(U[i, :]))))
 
-	poly = PolyCollection(verts, facecolors=(1, 1, 1, 1.0), edgecolors=(0, 0, 0, 1), linewidth=1.4) # RGBA
+	poly = PolyCollection(verts, facecolors=(1, 1, 1, 1.0), edgecolors=(0, 0, 0, 1), linewidth=1.4)  # RGBA
 
-	ax.add_collection3d(poly, zs=z[:,0], zdir="y")
+	ax.add_collection3d(poly, zs=z[:, 0], zdir="y")
 	ax.set_xlim3d(xmin, xmax)
 	ax.set_ylim3d(np.min(z)-2.0, np.max(z)-2.0)
 	ax.set_zlim3d(0, 1.1)
@@ -53,7 +53,7 @@ def drawPropagation(xmin, xmax, z, doslist):
 		labels.append(doslist[idoscar].split("_")[1])
 
 	ax.set_yticks(np.linspace(np.min(z), np.max(z), len(doslist)))
-	ax.set_yticks(z[:,0])
+	ax.set_yticks(z[:, 0])
 	ax.set_yticklabels(labels, va='center', ha='left', fontsize=14, fontname="Arial")
 
 	ax.grid(False)
@@ -92,7 +92,7 @@ for name in doslist:
 	except:
 		pass
 
-E_ads_list = sorted(E_ads_list.items(), key=lambda x:x[1], reverse=True)
+E_ads_list = sorted(E_ads_list.items(), key=lambda x: x[1], reverse=True)
 
 doslist = []
 for i in range(num):
