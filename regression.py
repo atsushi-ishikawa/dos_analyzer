@@ -34,7 +34,24 @@ def make_dataframe_form_csv(csvfile=None):
 		df = df.drop("Unnamed: 0", axis=1)
 	return df
 
+def remove_outliers(df=None):
+	before = len(df)
+	# remove positive adssorption energy
+	df = df[df["E_ads"] < 0.0]
+
+	# remove zero or negative height and width
+	for i in df.columns:
+		if ("height" in i) or ("width" in i):
+			df = df[df[i] > 0.0]
+
+	after = len(df)
+
+	print("removing outliear: {0:d} --> {1:d}".format(before, after))
+
+	return df
+
 df = make_dataframe_from_json(jsonfile="sample.json")
+df = remove_outliers(df)
 
 #vars = ["E_ads","efermi","d-position1","p-position1","s-position1"]
 #seaborn.pairplot(df, plot_kws={"s":10}, vars=vars, height=1.8)
@@ -137,7 +154,7 @@ rf = RandomForestRegressor(n_estimators=n_estimators)
 rf.fit(X_train, y_train)
 print("Training set score: {:.3f}".format(rf.score(X_train, y_train)))
 print("Test set score: {:.3f}".format(rf.score(X_test, y_test)))
-print("RMSE : {}".format(np.sqrt(mean_squared_error(y_test, rf.predict(X_test)))))
+print("RMSE : {:.3f}".format(np.sqrt(mean_squared_error(y_test, rf.predict(X_test)))))
 
 std = np.std([tree.feature_importances_ for tree in rf.estimators_], axis=0)
 feature_imp = pd.DataFrame({"name": X.columns, "Coef": rf.feature_importances_})
@@ -174,7 +191,7 @@ plt.ylabel("Accuracy")
 #plt.legend(loc="lower right", fontsize=14)
 plt.ylim([0.0, 1.0])
 #plt.show()
-plt.savefig("learning_curve_random_forest.png")
+plt.savefig("learning_curve_RF.png")
 plt.close()
 
 # plot correlation matrix
@@ -187,6 +204,9 @@ plt.show()
 plt.close()
 
 # bolasso (in R)
+print("now do not do BOLASSO")
+quit()
+
 import pyper
 r = pyper.R(use_pandas="True")
 r("source(file='do_bolasso.r')")

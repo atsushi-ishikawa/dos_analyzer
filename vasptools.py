@@ -137,8 +137,6 @@ def sort_atoms_by_z(atoms):
 
 	return newatoms
 
-
-
 def get_efermi_from_doscar(DOSCAR):
 	import linecache
 	line   = linecache.getline(DOSCAR, 6)
