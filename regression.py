@@ -1,6 +1,7 @@
+import os
+import numpy as np
 import seaborn
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
@@ -49,6 +50,12 @@ def remove_outliers(df=None):
 	print("removing outliear: {0:d} --> {1:d}".format(before, after))
 
 	return df
+
+# main
+
+outdir = "regression_results"
+os.makedirs(outdir, exist_ok=True)
+os.system("rm {}/*".format(outdir))
 
 df = make_dataframe_from_json(jsonfile="sample.json")
 df = remove_outliers(df)
@@ -105,7 +112,7 @@ ax.set_xlabel("Coefficient")
 
 ax.axvline(x=0, color="black", linewidth=0.5)
 plt.tight_layout()
-plt.savefig("lasso_coef.png")
+plt.savefig(outdir + "/" + "lasso_coef.png")
 plt.show()
 plt.close()
 
@@ -132,7 +139,7 @@ plt.ylabel("Accuracy")
 #
 #plt.legend(loc="lower right", fontsize=14)
 plt.ylim([0.0, 1.0])
-plt.savefig("learning_curve_lasso.png")
+plt.savefig(outdir + "/" + "learning_curve_lasso.png")
 plt.show()
 plt.close()
 
@@ -161,7 +168,7 @@ ax.barh(feature_imp["name"].iloc[::-1], feature_imp["Coef"].iloc[::-1], height=0
 ax.set_xlabel("Feature importance")
 ax.axvline(x=0, color="black", linewidth=0.5)
 plt.tight_layout()
-plt.savefig("feature_importance.png")
+plt.savefig(outdir + "/" + "feature_importance.png")
 plt.show()
 plt.close()
 
@@ -186,7 +193,7 @@ plt.ylabel("Accuracy")
 #
 #plt.legend(loc="lower right", fontsize=14)
 plt.ylim([0.0, 1.0])
-plt.savefig("learning_curve_RF.png")
+plt.savefig(outdir + "/" + "learning_curve_RF.png")
 plt.show()
 plt.close()
 
@@ -195,7 +202,7 @@ corr = df.corr()
 _, ax = plt.subplots(figsize=(12, 12))
 seaborn.heatmap(corr, vmax=1, vmin=-1, center=0, annot=False, annot_kws={"size": 10},
 				cbar=True, cmap="RdBu_r", square=True, fmt=".1f", ax=ax)
-plt.savefig("correlation.png")
+plt.savefig(outdir + "/" + "correlation.png")
 plt.show()
 plt.close()
 
@@ -219,7 +226,7 @@ freq.columns = col
 
 _, ax = plt.subplots(figsize=(10, 10))
 seaborn.heatmap(freq, vmax=1, vmin=0, cbar=True, cmap="Blues", square=False, ax=ax)
-plt.savefig("bolasso_frequency.png")
+plt.savefig(outdir + "/" + "bolasso_frequency.png")
 #plt.grid(color="lightgray", ls=":", linewidth=1)
 plt.show()
 plt.close()
