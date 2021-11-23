@@ -30,13 +30,13 @@ class VaspDosPlus:
 			line1 = f.readline()
 			self.natom = int(line1.split()[0])
 
-		self.normalize_height = True # True is maybe better
+		self.normalize_height = True  # True is maybe better
 		self.relative_to_fermi = False  # False is better
 		self.do_hilbert = False
 		self.do_cohp = False
-		self.geometry_information = True
+		self.geometry_information = False
 
-		self.sigma = 40  # smearing width
+		self.sigma = 1.0*40  # smearing width
 
 	@property
 	def numpeaks(self):
@@ -69,13 +69,11 @@ class VaspDosPlus:
 
 	def get_descriptors(self):
 		"""
-		Get descriptors.
+		Get descriptors. Descriptors are peak positions, widths, and heights of s, p, and d-bands.
+		The number of peaks should be specified by VaspDosPlus.numpeaks.
 
 		Returns:
-			dict
-
-		Examples:
-		python analyze.dos 1 Au_111 s p d
+			descriptors (dict)
 		"""
 		check = False
 
@@ -92,7 +90,7 @@ class VaspDosPlus:
 
 		for orbital in orbitals.values():
 			# get pdos for slab, surface, adsorption site
-			#pdos = self.get_projected_dos(self.vaspdos, atom_range=range(0, self.natom), orbital=orbital)  # all the model
+			#pdos = self.get_projected_dos(self.vaspdos, atom_range=range(0, self.natom), orbital=orbital)  # all
 			pdos = self.get_projected_dos(self.vaspdos, atom_range=range(48, 64), orbital=orbital)  # surface layer
 
 			# smear
@@ -113,14 +111,14 @@ class VaspDosPlus:
 				orb_name = self.from_012_to_spd(orbital)
 				params, rss, r2 = gaussian_fit(np.array(self.energy), pdos, params)
 				peaks = sort_peaks(params, key="height")
-				print("found %d peaks -- %s component R^2 = %5.3f" % (len(peaks), orb_name, r2))
+				print("found {0:>2d} peaks -- {1:s} component R^2 = {2:>5.3f}".format(len(peaks), orb_name, r2))
 			except:
 				r2 = 0.0
 				peaks = [(0, 0, 0) for _ in range(self._numpeaks)]
 
 			# discard if R^2 is too low
 			if r2 < 0.90:  # 0.98:
-				print("fitting failed: r2 (%5.3f) is too low ... quit" % r2)
+				print("fitting failed: R^2 ({:>5.3f}) is too low ... quit".format(r2))
 				peaks = [(0, 0, 0) for _ in range(self._numpeaks)]
 
 			# sort peaks and limit to numpeaks
@@ -160,7 +158,7 @@ class VaspDosPlus:
 
 			# if you want to check by eye
 			if check:
-				plot_dos()
+				self.plot_dos()
 
 			# write to database
 			orb_name = self.from_012_to_spd(orbital)
@@ -204,11 +202,27 @@ class VaspDosPlus:
 		return descriptors
 
 	def add_system_to_dict(self, dict=None):
+		"""
+		Add system i.e. surface composition to the dict.
+
+		Args:
+			dict:
+		Returns:
+			dict:
+		"""
 		tmp = {"system": self._system}
 		dict.update(tmp)
 		return dict
 
 	def add_adsorption_energy_to_dict(self, dict=None):
+		"""
+		Add adsorption energy (in eV) to dict.
+
+		Args:
+			dict:
+		Returns:
+			dict:
+		"""
 		db = self.db
 		id = db.get(system=self._system).id
 		row = db.get(id=id)
@@ -217,6 +231,14 @@ class VaspDosPlus:
 		return dict
 
 	def add_geometry_info_to_dict(self, dict=None):
+		"""
+		Add geometry information (surface area etc.) to dict.
+
+		Args:
+			dict:
+		Returns:
+			dict:
+		"""
 		db = self.db
 		id = db.get(system=self._system).id
 		atoms = db.get_atoms(id=id)
@@ -259,9 +281,12 @@ class VaspDosPlus:
 
 		return cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center
 
-	def plot_dos(self):
+	def plot_dos(self, dos):
 		"""
-		Plot dos.
+		Plot the density of state.
+
+		Args:
+			dos: density of state (numpy array)
 		"""
 		import seaborn as sb
 		from scipy import fftpack
@@ -274,8 +299,8 @@ class VaspDosPlus:
 		sb.set(context='notebook', style='darkgrid', palette='deep',
 			font='sans-serif', font_scale=1, color_codes=False, rc=None)
 		plt.plot(self.energy, fit, label="fitted")
-		plt.plot(self.energy, pdos, label="original")
-		plt.vlines(position_occ, 0, np.max(pdos), linestyle="dashed", linewidth=0.5)
+		plt.plot(self.energy, dos, label="original")
+		plt.vlines(position_occ, 0, np.max(dos), linestyle="dashed", linewidth=0.5)
 
 		if self.do_hilbert:
 			plt.plot(self.energy, ih, label="inverse Hilbert")
@@ -294,7 +319,6 @@ class VaspDosPlus:
 		return None
 
 	def get_moments(self, pdos=None, order=None):
-		from ase.dft import get_distribution_moment
 		"""
 		Get moments.
 
@@ -304,16 +328,16 @@ class VaspDosPlus:
 		Returns:
 			order-th moment value (float)
 		"""
+		from ase.dft import get_distribution_moment
 		return get_distribution_moment(self.energy, pdos, order=order)
 
 	def get_adsorption_site(self, atoms=None, adsorbing_element="C"):
 		"""
-		get coordinating atom.
+		Get coordinating atom.
 
 		Args:
 			atoms:
 			adsorbing_element:
-
 		Returns:
 
 		"""
@@ -336,9 +360,8 @@ class VaspDosPlus:
 			vaspdos: VaspDos object
 			atom_range:
 			orbital:
-
 		Returns:
-
+			pdos: projected DOS.
 		"""
 		pdos = np.zeros(len(self.energy))
 		for i in atom_range:
@@ -354,8 +377,15 @@ class VaspDosPlus:
 	def gaussian(self, x, x0, a, b):
 		"""
 		y = a*exp(-b*(x-x0)**2)
+
+		Args:
+			x:
+			x0:
+			a:
+			b:
+		Returns:
+			y
 		"""
-		import numpy as np
 		x = np.array(x)
 		y = np.exp(-b*(x-x0)**2)
 		y = a*y
@@ -363,14 +393,13 @@ class VaspDosPlus:
 
 	def smear_dos(self, dos, sigma=5.0):
 		"""
-		get smeared dos.
+		Get smeared DOS.
 
 		Args:
 			dos:
 			sigma:
-
 		Returns:
-
+			dos:
 		"""
 		x = self.energy  # note: occpied part only
 		y = dos
@@ -384,18 +413,40 @@ class VaspDosPlus:
 		return smeared
 
 	def findpeak(self, y):
-		import peakutils
+		"""
+		Find peak.
+		Args:
+			y:
 
+		Returns:
+
+		"""
+		import peakutils
 		indexes = peakutils.indexes(y, thres=0.1, min_dist=1)
 		return indexes
 
 	def from_012_to_spd(self, val):
+		"""
+		from 012 to spd.
+		Args:
+			val:
+		Returns:
+
+		"""
 		d = orbitals
 		keys = [k for k, v in d.items() if v == val]
 		if keys:
 			return keys[0]
 
 	def get_dos_edge(self, tdos):
+		"""
+
+		Args:
+			tdos:
+
+		Returns:
+
+		"""
 		from scipy import fftpack
 
 		tdos = tdos[:len(self.energy)]
@@ -424,6 +475,11 @@ class VaspDosPlus:
 		return upper_edge, lower_edge
 
 	def get_efermi_from_doscar(self):
+		"""
+
+		Returns:
+
+		"""
 		import linecache
 		line   = linecache.getline(self.doscar, 6)
 		line   = line.strip()
@@ -432,9 +488,28 @@ class VaspDosPlus:
 		return efermi
 
 def gaussian_fit(x, y, guess):
+	"""
+
+	Args:
+		x:
+		y:
+		guess:
+
+	Returns:
+
+	"""
 	from scipy.optimize import curve_fit
 
 	def fit_func(x, *params):
+		"""
+
+		Args:
+			x:
+			*params:
+
+		Returns:
+
+		"""
 		y = np.zeros_like(x)
 		for i in range(0, len(params), 3):
 			ctr = params[i]  # position
@@ -443,10 +518,13 @@ def gaussian_fit(x, y, guess):
 			y = y + amp * np.exp(-((x - ctr) / wid) ** 2)
 		return y
 
-	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=1.0e-5, xtol=1.0e-5)
-	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=1.0e-6, xtol=1.0e-6)
-	popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=1.0e-5, xtol=1.0e-5)  # good
-	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=1.0e-6, xtol=1.0e-6)
+	# method: trf ... Trust region reflective method. Generally robust (default).
+	#         lm  ... Levenberg-Marquardt. Most efficient for small sparse problem.
+	# ftol, xtol, gtol: default is 1.0e-8
+	#
+	tol = 1.0e-8
+	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=tol, xtol=tol, gtol=tol)
+	popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=tol, xtol=tol, gtol=tol)
 
 	fit = fit_func(x, *popt)
 	residual = y - fit
@@ -458,7 +536,14 @@ def gaussian_fit(x, y, guess):
 
 def sort_peaks(peaks, key="height"):
 	"""
-	assuming peaks are stored in [position, height, width,  position, height, width,...]
+	Sort peaks.
+	Assuming peaks are stored in [position, height, width,  position, height, width,...]
+
+	Args:
+		peaks:
+		key:
+	Returns:
+
 	"""
 	dtype = [("position", float), ("height", float), ("width", float)]
 
@@ -471,5 +556,3 @@ def sort_peaks(peaks, key="height"):
 	newpeaks = np.sort(newpeaks, order=key)
 	newpeaks = newpeaks[::-1]  # sort in descending order
 	return newpeaks
-
-

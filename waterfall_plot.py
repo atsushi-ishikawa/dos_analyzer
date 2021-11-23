@@ -80,10 +80,12 @@ from ase.db import connect
 json = "surf_data.json"
 db   = connect(json)
 num  = 20
+strong_ads = True
 
-doslist = glob.glob("DOSCAR_*")
+doscardir = "doscars"
+doscars = glob.glob(doscardir + "/" + "DOSCAR*")
 E_ads_list = {}
-for name in doslist:
+for name in doscars:
 	system = name.split("_")[1] + "_" + name.split("_")[2]
 	try:
 		id = db.get(system=system).id
@@ -92,7 +94,9 @@ for name in doslist:
 	except:
 		pass
 
-E_ads_list = sorted(E_ads_list.items(), key=lambda x: x[1], reverse=True)
+if strong_ads:
+	reverse = True
+E_ads_list = sorted(E_ads_list.items(), key=lambda x: x[1], reverse=reverse)
 
 doslist = []
 for i in range(num):

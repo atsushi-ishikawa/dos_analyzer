@@ -10,7 +10,6 @@ db = TinyDB(jsonfile)
 doscardir = "doscars"
 doscars = glob.glob(doscardir + "/" + "DOSCAR*")
 
-counter = 0
 for idoscar in doscars:
 	system = idoscar.split("_")[1] + "_" + idoscar.split("_")[2]
 	data = {}
@@ -24,7 +23,3 @@ for idoscar in doscars:
 
 	data.update(descriptor)
 	db.insert(data)
-
-	counter += 1
-	if counter == 80:
-		quit()
