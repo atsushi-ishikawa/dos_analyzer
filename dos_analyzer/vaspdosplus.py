@@ -17,7 +17,7 @@ class VaspDosPlus:
 		self._numpeaks = None
 
 		self.db = None
-		self.margin = 0.0  # note: if include edge, increase this value (e.g. 2.0)
+		self.margin = 1.0  # note: if include edge, increase this value (e.g. 2.0)
 		self.vaspdos = VaspDos(doscar=doscar)
 		self.efermi  = self.get_efermi_from_doscar()
 
@@ -34,9 +34,9 @@ class VaspDosPlus:
 		self.relative_to_fermi = False  # False is better
 		self.do_hilbert = False
 		self.do_cohp = False
-		self.geometry_information = False
+		self.geometry_information = True
 
-		self.sigma = 1.0*40  # smearing width
+		self.sigma = 40  # smearing width
 
 	@property
 	def numpeaks(self):
@@ -90,8 +90,8 @@ class VaspDosPlus:
 
 		for orbital in orbitals.values():
 			# get pdos for slab, surface, adsorption site
-			#pdos = self.get_projected_dos(self.vaspdos, atom_range=range(0, self.natom), orbital=orbital)  # all
-			pdos = self.get_projected_dos(self.vaspdos, atom_range=range(48, 64), orbital=orbital)  # surface layer
+			#pdos = self.get_pdos(self.vaspdos, atom_range=range(0, self.natom), orbital=orbital)  # all
+			pdos = self.get_pdos(self.vaspdos, atom_range=range(48, 64), orbital=orbital)  # surface
 
 			# smear
 			pdos = self.smear_dos(pdos, sigma=self.sigma)
@@ -111,7 +111,7 @@ class VaspDosPlus:
 				orb_name = self.from_012_to_spd(orbital)
 				params, rss, r2 = gaussian_fit(np.array(self.energy), pdos, params)
 				peaks = sort_peaks(params, key="height")
-				print("found {0:>2d} peaks -- {1:s} component R^2 = {2:>5.3f}".format(len(peaks), orb_name, r2))
+				print("found {0:>2d} peaks -- {1:s} orbital R^2 = {2:>5.3f}".format(len(peaks), orb_name, r2))
 			except:
 				r2 = 0.0
 				peaks = [(0, 0, 0) for _ in range(self._numpeaks)]
@@ -352,7 +352,7 @@ class VaspDosPlus:
 
 		return coord_num
 
-	def get_projected_dos(self, vaspdos, atom_range=None, orbital=None):
+	def get_pdos(self, vaspdos, atom_range=None, orbital=None):
 		"""
 		Get projected DOS.
 
@@ -520,11 +520,11 @@ def gaussian_fit(x, y, guess):
 
 	# method: trf ... Trust region reflective method. Generally robust (default).
 	#         lm  ... Levenberg-Marquardt. Most efficient for small sparse problem.
-	# ftol, xtol, gtol: default is 1.0e-8
+	# ftol, xtol, gtol: default is 1.0e-8. Used 1.0e-6 to reduced the drop-off DOSs.
 	#
 	tol = 1.0e-8
-	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=tol, xtol=tol, gtol=tol)
-	popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=tol, xtol=tol, gtol=tol)
+	popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=tol, xtol=tol, gtol=tol)
+	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=tol, xtol=tol, gtol=tol)
 
 	fit = fit_func(x, *popt)
 	residual = y - fit

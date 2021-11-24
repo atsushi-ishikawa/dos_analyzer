@@ -17,7 +17,7 @@ for idoscar in doscars:
 	dos = VaspDosPlus(doscar=idoscar)
 	dos.surf_jsonfile = "surf_data.json"
 	dos.system = system
-	dos.numpeaks = 3
+	dos.numpeaks = 2
 
 	descriptor = dos.get_descriptors()
 

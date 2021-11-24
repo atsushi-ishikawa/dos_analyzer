@@ -46,7 +46,6 @@ def remove_outliers(df=None):
 			df = df[df[i] > 0.0]
 
 	after = len(df)
-
 	print("removing outliear: {0:d} --> {1:d}".format(before, after))
 
 	return df
