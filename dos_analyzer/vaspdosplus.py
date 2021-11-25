@@ -17,7 +17,11 @@ class VaspDosPlus:
 		self._numpeaks = None
 
 		self.db = None
-		self.margin = 1.0  # 1.0 is better except LASSO coef. # note: increase this value when adding edge (e.g. 2.0)
+		self.margin = 1.0
+		# Margin for the occupied band. Efermi + margin is considered as occupied.
+		# margin = 0.0 is not good for LASSO at peak = 4
+		# Metter to increase this value when including edge.
+
 		self.vaspdos = VaspDos(doscar=doscar)
 		self.efermi  = self.get_efermi_from_doscar()
 
@@ -34,7 +38,7 @@ class VaspDosPlus:
 		self.relative_to_fermi = False  # False is better
 		self.do_hilbert = False
 		self.do_cohp = False
-		self.geometry_information = True
+		self.geometry_information = False
 
 		self.sigma = 40  # smearing width
 
@@ -415,11 +419,11 @@ class VaspDosPlus:
 	def findpeak(self, y):
 		"""
 		Find peak.
+
 		Args:
 			y:
-
 		Returns:
-
+			index
 		"""
 		import peakutils
 		indexes = peakutils.indexes(y, thres=0.1, min_dist=1)
@@ -427,11 +431,12 @@ class VaspDosPlus:
 
 	def from_012_to_spd(self, val):
 		"""
-		from 012 to spd.
+		Convert 012 to spd.
+
 		Args:
 			val:
 		Returns:
-
+			s or p or d (string)j
 		"""
 		d = orbitals
 		keys = [k for k, v in d.items() if v == val]
@@ -440,12 +445,13 @@ class VaspDosPlus:
 
 	def get_dos_edge(self, tdos):
 		"""
+		Get the edge of the DOS, detected by the peak in its inverse Hilbert transform.
+		Note: assuming Total DOS, but PDOS might be OK.
 
 		Args:
 			tdos:
-
 		Returns:
-
+			upper_edge, lower_edge (float):
 		"""
 		from scipy import fftpack
 

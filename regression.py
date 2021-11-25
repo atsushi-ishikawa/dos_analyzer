@@ -87,7 +87,7 @@ for name, method in zip(names, methods):
 	print("-------- %s ---------" % name)
 
 	pipe = make_pipeline(scaler, method)
-	param_grid = {name + "__alpha": list(10**np.arange(-5, 5, 0.2))}
+	param_grid = {name + "__alpha": list(10**np.arange(-3, 3, 0.1))}
 
 	grid = GridSearchCV(pipe, param_grid=param_grid, cv=cv)
 	grid.fit(X_train, y_train)
