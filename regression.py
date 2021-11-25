@@ -51,7 +51,6 @@ def remove_irregular_samples(df=None):
 	return df
 
 # main
-
 outdir = "regression_results"
 os.makedirs(outdir, exist_ok=True)
 os.system("rm {}/*".format(outdir))

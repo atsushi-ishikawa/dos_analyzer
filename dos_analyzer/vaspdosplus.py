@@ -17,10 +17,10 @@ class VaspDosPlus:
 		self._numpeaks = None
 
 		self.db = None
-		self.margin = 1.0
+		self.margin = 0.0
 		# Margin for the occupied band. Efermi + margin is considered as occupied.
-		# margin = 0.0 is not good for LASSO at peak = 4
-		# Metter to increase this value when including edge.
+		# margin = 0.0 is not good for LASSO at peak = 4.
+		# Better to increase this value when including edge.
 
 		self.vaspdos = VaspDos(doscar=doscar)
 		self.efermi  = self.get_efermi_from_doscar()
@@ -93,17 +93,16 @@ class VaspDosPlus:
 		print(" ----- %s ----- " % self._system)
 
 		for orbital in orbitals.values():
-			# get pdos for slab, surface, adsorption site
 			#pdos = self.get_pdos(self.vaspdos, atom_range=range(0, self.natom), orbital=orbital)  # all
 			pdos = self.get_pdos(self.vaspdos, atom_range=range(48, 64), orbital=orbital)  # surface
 
-			# smear
+			# smear the dos
 			pdos = self.smear_dos(pdos, sigma=self.sigma)
 
-			# analyze dos by fitting Gaussian
+			# find peaks to make guess for Gaussian fit
 			peaks = self.findpeak(pdos)
 
-			width = 1.0*(1/self.sigma**0.5)  # guess for the Gaussian fit
+			width = 1.0*(1/self.sigma**0.5)  # guess
 			params = []
 			for idx in peaks:
 				params.append(self.energy[idx])
@@ -174,8 +173,8 @@ class VaspDosPlus:
 
 			# get s, p, d-center and higher moments
 			center = self.get_moments(pdos, order=1)
-			#second = self.get_moments(pdos, order=2)
 			descriptors.update({orb_name + "_center": center})
+			#second = self.get_moments(pdos, order=2)
 			#descriptors.update({orb_name + "_second": second})
 
 		# end loop for orbitals
@@ -343,7 +342,7 @@ class VaspDosPlus:
 			atoms:
 			adsorbing_element:
 		Returns:
-
+			coord_num (int): the atom index of the adsorption site.
 		"""
 		coord_ind = []
 		adsorbate_ind = atoms.get_chemical_symbols().index(adsorbing_element)
