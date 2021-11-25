@@ -35,7 +35,7 @@ def make_dataframe_form_csv(csvfile=None):
 		df = df.drop("Unnamed: 0", axis=1)
 	return df
 
-def remove_outliers(df=None):
+def remove_irregular_samples(df=None):
 	before = len(df)
 	# remove positive adssorption energy
 	df = df[df["E_ads"] < 0.0]
@@ -57,12 +57,12 @@ os.makedirs(outdir, exist_ok=True)
 os.system("rm {}/*".format(outdir))
 
 df = make_dataframe_from_json(jsonfile="sample.json")
-df = remove_outliers(df)
+df = remove_irregular_samples(df)
 
 X = df.drop("E_ads", axis=1)
 y = df["E_ads"]
 
-cv = 5
+cv = 10
 test_size = 1.0/cv
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=1)
@@ -135,7 +135,6 @@ plt.xticks()
 plt.yticks()
 plt.xlabel("Number of training samples")
 plt.ylabel("Accuracy")
-#
 #plt.legend(loc="lower right", fontsize=14)
 plt.ylim([0.0, 1.0])
 plt.savefig(outdir + "/" + "learning_curve_lasso.png")

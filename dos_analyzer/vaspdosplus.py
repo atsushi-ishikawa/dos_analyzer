@@ -17,7 +17,7 @@ class VaspDosPlus:
 		self._numpeaks = None
 
 		self.db = None
-		self.margin = 1.0  # note: if include edge, increase this value (e.g. 2.0)
+		self.margin = 1.0  # 1.0 is better except LASSO coef. # note: increase this value when adding edge (e.g. 2.0)
 		self.vaspdos = VaspDos(doscar=doscar)
 		self.efermi  = self.get_efermi_from_doscar()
 
@@ -522,8 +522,8 @@ def gaussian_fit(x, y, guess):
 	#         lm  ... Levenberg-Marquardt. Most efficient for small sparse problem.
 	# ftol, xtol, gtol: default is 1.0e-8. Used 1.0e-6 to reduced the drop-off DOSs.
 	#
-	tol = 1.0e-8
-	popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=tol, xtol=tol, gtol=tol)
+	tol = 1.0e-8   # OK
+	popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=tol, xtol=tol, gtol=tol)  # better peaks 1-2-3
 	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=tol, xtol=tol, gtol=tol)
 
 	fit = fit_func(x, *popt)
