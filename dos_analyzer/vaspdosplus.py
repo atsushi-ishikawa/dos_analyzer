@@ -17,9 +17,9 @@ class VaspDosPlus:
 		self._numpeaks = None
 
 		self.db = None
-		self.margin = 0.0
+		self.margin = 1.0
 		# Margin for the occupied band. Efermi + margin is considered as occupied.
-		# margin = 0.0 is not good for LASSO at peak = 4.
+		# margin = 0.0 is not good.
 		# Better to increase this value when including edge.
 
 		self.vaspdos = VaspDos(doscar=doscar)
@@ -40,7 +40,7 @@ class VaspDosPlus:
 		self.do_cohp = False
 		self.geometry_information = False
 
-		self.sigma = 40  # smearing width
+		self.sigma = 50  # smearing width
 
 	@property
 	def numpeaks(self):
@@ -174,8 +174,11 @@ class VaspDosPlus:
 			# get s, p, d-center and higher moments
 			center = self.get_moments(pdos, order=1)
 			descriptors.update({orb_name + "_center": center})
+			# higher moments ... not effective
 			#second = self.get_moments(pdos, order=2)
 			#descriptors.update({orb_name + "_second": second})
+			#third = self.get_moments(pdos, order=3)
+			#descriptors.update({orb_name + "_third": third})
 
 		# end loop for orbitals
 
@@ -528,7 +531,7 @@ def gaussian_fit(x, y, guess):
 	# ftol, xtol, gtol: default is 1.0e-8. Used 1.0e-6 to reduced the drop-off DOSs.
 	#
 	tol = 1.0e-8   # OK
-	popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=tol, xtol=tol, gtol=tol)  # better peaks 1-2-3
+	popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=tol, xtol=tol, gtol=tol)  # good peak 1-2-3
 	#popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=tol, xtol=tol, gtol=tol)
 
 	fit = fit_func(x, *popt)
