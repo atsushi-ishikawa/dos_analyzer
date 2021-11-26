@@ -204,9 +204,6 @@ plt.show()
 plt.close()
 
 # bolasso (in R)
-print("now do not do BOLASSO")
-quit()
-
 import pyper
 r = pyper.R(use_pandas="True")
 r("source(file='do_bolasso.r')")
