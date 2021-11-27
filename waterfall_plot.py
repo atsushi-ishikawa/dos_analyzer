@@ -4,7 +4,22 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection
 from ase.calculators.vasp import VaspDos
 import glob
-from vasptools import get_efermi_from_doscar
+
+def get_efermi_from_doscar(DOSCAR):
+	"""
+	Get Fermi energy from DOSCAR file.
+
+	Args:
+		DOSCAR:
+	Returns:
+		efermi: Fermi energy
+	"""
+	import linecache
+	line = linecache.getline(DOSCAR, 6)
+	line = line.strip()
+	line = line.split()
+	efermi = float(line[3])
+	return efermi
 
 def drawPropagation(xmin, xmax, z, doslist):
 	sy = z.size

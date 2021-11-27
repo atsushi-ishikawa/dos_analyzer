@@ -23,7 +23,7 @@ class VaspDosPlus:
 		# Better to increase this value when including edge.
 
 		self.vaspdos = VaspDos(doscar=doscar)
-		self.efermi  = self.get_efermi_from_doscar()
+		self.efermi  = get_efermi_from_doscar(self.doscar)
 
 		# limit analysis on occupied part only
 		energy = self.vaspdos.energy
@@ -482,18 +482,21 @@ class VaspDosPlus:
 
 		return upper_edge, lower_edge
 
-	def get_efermi_from_doscar(self):
-		"""
+def get_efermi_from_doscar(DOSCAR):
+	"""
+	Get Fermi energy from DOSCAR file.
 
-		Returns:
-
-		"""
-		import linecache
-		line   = linecache.getline(self.doscar, 6)
-		line   = line.strip()
-		line   = line.split()
-		efermi = float(line[3])
-		return efermi
+	Args:
+		DOSCAR:
+	Returns:
+		efermi: Fermi energy
+	"""
+	import linecache
+	line   = linecache.getline(DOSCAR, 6)
+	line   = line.strip()
+	line   = line.split()
+	efermi = float(line[3])
+	return efermi
 
 def gaussian_fit(x, y, guess):
 	"""
