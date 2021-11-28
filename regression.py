@@ -59,7 +59,7 @@ df = make_dataframe_from_json(jsonfile="sample.json")
 df = remove_irregular_samples(df)
 
 X = df.drop("E_ads", axis=1)
-y = df["E_ads"]
+y = -df["E_ads"]
 
 cv = 10
 test_size = 1.0/cv
@@ -143,9 +143,8 @@ plt.close()
 # Random forest or Gradient boosting forest
 n_estimators = 100
 print("-------- Random Forest Regression ---------")
-rf = RandomForestRegressor(n_estimators=n_estimators)
-#rf = GradientBoostingRegressor(n_estimators=n_estimators)
-#rf = ExtraTreesRegressor(n_estimators=n_estimators)
+#rf = RandomForestRegressor(n_estimators=n_estimators)
+rf = ExtraTreesRegressor(n_estimators=n_estimators)
 
 rf.fit(X_train, y_train)
 print("Training set score: {:.3f}".format(rf.score(X_train, y_train)))
@@ -202,6 +201,18 @@ seaborn.heatmap(corr, vmax=1, vmin=-1, center=0, annot=False, annot_kws={"size":
 plt.savefig(outdir + "/" + "correlation.png")
 plt.show()
 plt.close()
+
+import shap
+shap_values = shap.TreeExplainer(rf).shap_values(X_train)
+f = plt.figure()
+shap.summary_plot(shap_values, X_train, plot_type="bar")
+f.savefig(outdir + "/" + "shap_bar.png", bbox_inches="tight")
+
+f = plt.figure()
+shap.summary_plot(shap_values, X_train)
+f.savefig(outdir + "/" + "shap_values.png", bbox_inches="tight")
+f.show()
+quit()
 
 # bolasso (in R)
 import pyper
