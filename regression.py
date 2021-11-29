@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV, learning_cur
 from sklearn.metrics import mean_squared_error
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, ExtraTreesRegressor
+from xgboost import XGBRegressor
 
 from matplotlib import rcParams
 plt.rcParams["font.family"] = "arial"
@@ -17,6 +18,12 @@ plt.rcParams["axes.labelsize"] = 14
 plt.rcParams["axes.linewidth"] = 1
 plt.rcParams["legend.frameon"] = False
 plt.rcParams["legend.framealpha"] = 1.0
+plt.rcParams["axes.axisbelow"] = True
+
+# cv as global variable
+n_splits = 5
+n_repeats = 6
+cv = RepeatedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=1)
 
 def make_dataframe_from_json(jsonfile=None):
 	import json
@@ -50,12 +57,13 @@ def remove_irregular_samples(df=None):
 
 	return df
 
-def make_shap_plot(model=None, X=None, outdir=None):
+def make_shap_plot(model=None, model_name=None, X=None, outdir=None):
 	"""
 	SHAP value plot.
 
 	Args:
 		model:
+		model_name:
 		X:
 		outdir:
 	Returns:
@@ -64,36 +72,54 @@ def make_shap_plot(model=None, X=None, outdir=None):
 
 	shap_values = shap.TreeExplainer(model).shap_values(X)
 
-	plt.tight_layout()
-	shap.summary_plot(shap_values, X_train, plot_type="bar")
-	plt.savefig(outdir + "/" + "shap_values.png")
-	plt.show()
+	fig = plt.figure()
+	fig.tight_layout()
+	shap.summary_plot(shap_values, X_train, plot_type="bar", plot_size=(10, 10))
+	fig.savefig(outdir + "/" + "shap_values_" + model_name + ".png", bbox_inches="tight")
 	plt.close()
-	#fig.savefig(outdir + "/" + "shap_bar.png", bbox_inches="tight")
 
-	plt.tight_layout()
-	shap.summary_plot(shap_values, X_train)
-	plt.savefig(outdir + "/" + "shap_summary.png")
-	plt.show()
+	fig = plt.figure()
+	fig.tight_layout()
+	shap.summary_plot(shap_values, X_train, plot_size=(6, 10))
+	fig.savefig(outdir + "/" + "shap_summary_" + model_name + ".png", bbox_inches="tight")
 	plt.close()
-	#fig.savefig(outdir + "/" + "shap_values.png", bbox_inches="tight")
 
-def test(df=None, model=None, model_type="lasso"):
-	from sklearn.model_selection import cross_validate, RepeatedKFold
+def plot_variability_of_coefficients(df=None, model=None, model_name="lasso", outdir=None):
+	"""
+	Plot the variability of LASSO or tree-regression coefficients.
+	See https://scikit-learn.org/stable/auto_examples/inspection/plot_linear_model_coefficient_interpretation.html
+
+	Args:
+		df:
+		model:
+		model_name:
+		outdir:
+	Returns:
+		None
+	"""
+	from sklearn.model_selection import cross_validate
 
 	feature_names = df.columns
-	cv_model = cross_validate(model, X, y, cv=RepeatedKFold(n_splits=5, n_repeats=4), return_estimator=True)
-	if model_type == "lasso":
+	if model_name is None:
+		raise ValueError("input model name")
+
+	cv_model = cross_validate(model, X, y, cv=cv, return_estimator=True)
+	if model_name == "lasso":
 		coefs = pd.DataFrame([est.coef_ for est in cv_model["estimator"]], columns=feature_names[1:])
-	else:  # tree regressor
+	else:
 		coefs = pd.DataFrame([est.feature_importances_ for est in cv_model["estimator"]], columns=feature_names[1:])
 
-	seaborn.boxplot(data=coefs, orient="h", saturation=0.5)
-	plt.grid()
+	fig, ax = plt.subplots(figsize=(10, 10))
+	seaborn.boxplot(data=coefs, orient="h", saturation=0.5, color="cyan")
+	ax.set_title("Variability of coefficients: " + model_name)
+	ax.set_xlabel("Coefficients")
+	ax.axvline(x=0, color="black", linewidth=0.5)
+	ax.yaxis.grid(color="gray", linewidth=0.25)
+	fig.tight_layout()
+	plt.savefig(outdir + "/" + "coef_variability_" + model_name + ".png")
 	plt.show()
 
 def plot_feature_importance(rf=None, X=None, outdir=None):
-	#std = np.std([tree.feature_importances_ for tree in rf.estimators_], axis=0)
 	feature_imp = pd.DataFrame({"name": X.columns, "Coef": rf.feature_importances_})
 
 	_, ax = plt.subplots(figsize=(10, 10))
@@ -103,6 +129,15 @@ def plot_feature_importance(rf=None, X=None, outdir=None):
 	ax.axvline(x=0, color="black", linewidth=0.5)
 	plt.tight_layout()
 	plt.savefig(outdir + "/" + "feature_importance.png")
+	plt.show()
+	plt.close()
+
+def plot_correlation_matrix(df=None, outdir=None):
+	corr = df.corr()
+	_, ax = plt.subplots(figsize=(12, 12))
+	seaborn.heatmap(corr, vmax=1, vmin=-1, center=0, annot=False, annot_kws={"size": 10},
+					cbar=True, cmap="RdBu_r", square=True, fmt=".1f", ax=ax)
+	plt.savefig(outdir + "/" + "correlation.png")
 	plt.show()
 	plt.close()
 
@@ -117,11 +152,7 @@ df = remove_irregular_samples(df)
 X = df.drop("E_ads", axis=1)
 y = -df["E_ads"]
 
-#cv = 10
-#test_size = 1.0/cv
-cv = RepeatedKFold(n_splits=5, n_repeats=4)
-test_size = 0.2
-
+test_size = 1.0 / n_splits
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=1)
 
 scaler = StandardScaler()
@@ -131,17 +162,17 @@ scaler = StandardScaler()
 methods = [Ridge(), Lasso()]
 names   = ["ridge", "lasso"]
 
-print("-------- Linear Regression ---------")
+print("----- Ordinary Linear Regression -----")
 lr = LinearRegression()
 lr.fit(X_train, y_train)
 
-print(pd.DataFrame({"name": X.columns, "Coef": lr.coef_}).sort_values(by="Coef"))
+#print(pd.DataFrame({"name": X.columns, "Coef": lr.coef_}).sort_values(by="Coef"))
 print("Training set score: {:.3f}".format(lr.score(X_train, y_train)))
 print("Test set score: {:.3f}".format(lr.score(X_test, y_test)))
 print("RMSE: {:.3f}".format(np.sqrt(mean_squared_error(y_test, lr.predict(X_test)))))
 
 for name, method in zip(names, methods):
-	print("-------- %s ---------" % name)
+	print("----- %s -----" % name)
 
 	pipe = make_pipeline(scaler, method)
 	param_grid = {name + "__alpha": list(10**np.arange(-3, 3, 0.1))}
@@ -149,8 +180,8 @@ for name, method in zip(names, methods):
 	grid = GridSearchCV(pipe, param_grid=param_grid, cv=cv)
 	grid.fit(X_train, y_train)
 
-	print(pd.DataFrame({"name": X.columns,
-						"Coef": grid.best_estimator_.named_steps[name].coef_}).sort_values(by="Coef"))
+	#print(pd.DataFrame({"name": X.columns,
+	#					"Coef": grid.best_estimator_.named_steps[name].coef_}).sort_values(by="Coef"))
 	print("Best parameters: {}".format(grid.best_params_))
 	print("Training set score: {:.3f}".format(grid.score(X_train, y_train)))
 	print("Test set score: {:.3f}".format(grid.score(X_test, y_test)))
@@ -172,6 +203,8 @@ plt.savefig(outdir + "/" + "lasso_coef.png")
 plt.show()
 plt.close()
 
+plot_variability_of_coefficients(df=df, model=grid.best_estimator_.named_steps["lasso"], model_name="lasso", outdir=outdir)
+
 # learning_curve for LASSO
 best_param = list(grid.best_params_.values())[0]
 pipe = Pipeline([("scl", scaler), ("lasso", Lasso(alpha=best_param))])
@@ -192,69 +225,59 @@ plt.xticks()
 plt.yticks()
 plt.xlabel("Number of training samples")
 plt.ylabel("Accuracy")
-#plt.legend(loc="lower right", fontsize=14)
 plt.ylim([0.0, 1.0])
 plt.savefig(outdir + "/" + "learning_curve_lasso.png")
 plt.show()
 plt.close()
 
 # Tree regression
-print("-------- Tree Regression ---------")
-#rf = RandomForestRegressor()
-rf = GradientBoostingRegressor()
-#rf = ExtraTreesRegressor()
+print("===== Tree Regression =====")
+names   = ["randomforest", "xgb"]
+methods = [RandomForestRegressor(), XGBRegressor()]
+#methods = [RandomForestRegressor(), GradientBoostingRegressor(), ExtraTreesRegressor(), XGBRegressor()]
+for name, method in zip(names, methods):
+	print("----- %s -----" % name)
 
-# do grid search to find hyper parameters
-param_grid = {"n_estimators": [50, 100, 150], "max_depth": [5, 10, 15]}
-grid_tree = GridSearchCV(rf, param_grid=param_grid, cv=cv)
-grid_tree.fit(X_train, y_train)
+	# do grid search to find hyper parameters
+	param_grid = {"n_estimators": [50, 100, 150], "max_depth": [5, 10, 15]}
+	grid_tree = GridSearchCV(method, param_grid=param_grid, cv=cv)
+	grid_tree.fit(X_train, y_train)
 
-rf = grid_tree.best_estimator_
+	method = grid_tree.best_estimator_
 
-print("Best parameters: {}".format(grid_tree.best_params_))
-print("Training set score: {:.3f}".format(rf.score(X_train, y_train)))
-print("Test set score: {:.3f}".format(rf.score(X_test, y_test)))
-print("RMSE : {:.3f}".format(np.sqrt(mean_squared_error(y_test, rf.predict(X_test)))))
+	print("Best parameters: {}".format(grid_tree.best_params_))
+	print("Training set score: {:.3f}".format(method.score(X_train, y_train)))
+	print("Test set score: {:.3f}".format(method.score(X_test, y_test)))
+	print("RMSE : {:.3f}".format(np.sqrt(mean_squared_error(y_test, method.predict(X_test)))))
 
-seaborn.regplot(y=y.values, x=rf.predict(X))
-plt.title("Random forest")
-plt.show()
+	seaborn.regplot(y=y.values, x=method.predict(X))
+	plt.title(name)
+	plt.show()
 
-# learning_curve for Random forest
-train_sizes, train_scores, test_scores = learning_curve(estimator=rf, X=X_train, y=y_train,
-														train_sizes=np.linspace(0.2, 1.0, 10), cv=cv)
-train_mean = np.mean(train_scores, axis=1)
-train_std  = np.std(train_scores, axis=1)
-test_mean  = np.mean(test_scores, axis=1)
-test_std   = np.std(test_scores, axis=1)
+	# learning_curve for Random forest
+	train_sizes, train_scores, test_scores = learning_curve(estimator=method, X=X_train, y=y_train,
+															train_sizes=np.linspace(0.2, 1.0, 10), cv=cv)
+	train_mean = np.mean(train_scores, axis=1)
+	train_std  = np.std(train_scores, axis=1)
+	test_mean  = np.mean(test_scores, axis=1)
+	test_std   = np.std(test_scores, axis=1)
 
-plt.plot(train_sizes, train_mean, color="blue", marker="o", markersize=5, label="training accuracy")
-plt.fill_between(train_sizes, train_mean+train_std, train_mean-train_std, alpha=0.15, color="blue")
+	plt.plot(train_sizes, train_mean, color="blue", marker="o", markersize=5, label="training accuracy")
+	plt.fill_between(train_sizes, train_mean+train_std, train_mean-train_std, alpha=0.15, color="blue")
 
-plt.plot(train_sizes, test_mean, color="green", marker="s", markersize=5, label="validation accuracy")
-plt.fill_between(train_sizes, test_mean+test_std, test_mean-test_std, alpha=0.15, color="green")
+	plt.plot(train_sizes, test_mean, color="green", marker="s", markersize=5, label="validation accuracy")
+	plt.fill_between(train_sizes, test_mean+test_std, test_mean-test_std, alpha=0.15, color="green")
 
-plt.xticks()
-plt.yticks()
-plt.xlabel("Number of training samples")
-plt.ylabel("Accuracy")
-#
-#plt.legend(loc="lower right", fontsize=14)
-plt.ylim([0.0, 1.0])
-plt.savefig(outdir + "/" + "learning_curve_RF.png")
-plt.show()
-plt.close()
+	plt.xticks()
+	plt.yticks()
+	plt.xlabel("Number of training samples")
+	plt.ylabel("Accuracy")
+	plt.ylim([0.0, 1.0])
+	plt.savefig(outdir + "/" + "learning_curve_" + name + ".png")
+	plt.show()
+	plt.close()
 
-# plot correlation matrix
-corr = df.corr()
-_, ax = plt.subplots(figsize=(12, 12))
-seaborn.heatmap(corr, vmax=1, vmin=-1, center=0, annot=False, annot_kws={"size": 10},
-				cbar=True, cmap="RdBu_r", square=True, fmt=".1f", ax=ax)
-plt.savefig(outdir + "/" + "correlation.png")
-plt.show()
-plt.close()
+	plot_variability_of_coefficients(df=df, model=method, model_name=name, outdir=outdir)
 
-make_shap_plot(model=rf, X=X_train, outdir=outdir)
-
-test(df=df, model=grid.best_estimator_.named_steps["lasso"], model_type="lasso")
-test(df=df, model=rf, model_type="rf")
+	# shap plot
+	make_shap_plot(model=method, model_name=name, X=X_train, outdir=outdir)
