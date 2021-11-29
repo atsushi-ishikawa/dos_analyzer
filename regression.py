@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
-from sklearn.model_selection import train_test_split, GridSearchCV, learning_curve
+from sklearn.model_selection import train_test_split, GridSearchCV, learning_curve, RepeatedKFold
 from sklearn.metrics import mean_squared_error
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, ExtraTreesRegressor
@@ -50,6 +50,62 @@ def remove_irregular_samples(df=None):
 
 	return df
 
+def make_shap_plot(model=None, X=None, outdir=None):
+	"""
+	SHAP value plot.
+
+	Args:
+		model:
+		X:
+		outdir:
+	Returns:
+	"""
+	import shap
+
+	shap_values = shap.TreeExplainer(model).shap_values(X)
+
+	plt.tight_layout()
+	shap.summary_plot(shap_values, X_train, plot_type="bar")
+	plt.savefig(outdir + "/" + "shap_values.png")
+	plt.show()
+	plt.close()
+	#fig.savefig(outdir + "/" + "shap_bar.png", bbox_inches="tight")
+
+	plt.tight_layout()
+	shap.summary_plot(shap_values, X_train)
+	plt.savefig(outdir + "/" + "shap_summary.png")
+	plt.show()
+	plt.close()
+	#fig.savefig(outdir + "/" + "shap_values.png", bbox_inches="tight")
+
+def test(df=None, model=None, model_type="lasso"):
+	from sklearn.model_selection import cross_validate, RepeatedKFold
+
+	feature_names = df.columns
+	cv_model = cross_validate(model, X, y, cv=RepeatedKFold(n_splits=5, n_repeats=4), return_estimator=True)
+	if model_type == "lasso":
+		coefs = pd.DataFrame([est.coef_ for est in cv_model["estimator"]], columns=feature_names[1:])
+	else:  # tree regressor
+		coefs = pd.DataFrame([est.feature_importances_ for est in cv_model["estimator"]], columns=feature_names[1:])
+
+	seaborn.boxplot(data=coefs, orient="h", saturation=0.5)
+	plt.grid()
+	plt.show()
+
+def plot_feature_importance(rf=None, X=None, outdir=None):
+	#std = np.std([tree.feature_importances_ for tree in rf.estimators_], axis=0)
+	feature_imp = pd.DataFrame({"name": X.columns, "Coef": rf.feature_importances_})
+
+	_, ax = plt.subplots(figsize=(10, 10))
+	ax.barh(feature_imp["name"].iloc[::-1], feature_imp["Coef"].iloc[::-1], height=0.6, color="limegreen")
+
+	ax.set_xlabel("Feature importance")
+	ax.axvline(x=0, color="black", linewidth=0.5)
+	plt.tight_layout()
+	plt.savefig(outdir + "/" + "feature_importance.png")
+	plt.show()
+	plt.close()
+
 # main
 outdir = "regression_results"
 os.makedirs(outdir, exist_ok=True)
@@ -61,8 +117,10 @@ df = remove_irregular_samples(df)
 X = df.drop("E_ads", axis=1)
 y = -df["E_ads"]
 
-cv = 10
-test_size = 1.0/cv
+#cv = 10
+#test_size = 1.0/cv
+cv = RepeatedKFold(n_splits=5, n_repeats=4)
+test_size = 0.2
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=1)
 
@@ -140,13 +198,20 @@ plt.savefig(outdir + "/" + "learning_curve_lasso.png")
 plt.show()
 plt.close()
 
-# Random forest or Gradient boosting forest
-n_estimators = 100
-print("-------- Random Forest Regression ---------")
-#rf = RandomForestRegressor(n_estimators=n_estimators)
-rf = ExtraTreesRegressor(n_estimators=n_estimators)
+# Tree regression
+print("-------- Tree Regression ---------")
+#rf = RandomForestRegressor()
+rf = GradientBoostingRegressor()
+#rf = ExtraTreesRegressor()
 
-rf.fit(X_train, y_train)
+# do grid search to find hyper parameters
+param_grid = {"n_estimators": [50, 100, 150], "max_depth": [5, 10, 15]}
+grid_tree = GridSearchCV(rf, param_grid=param_grid, cv=cv)
+grid_tree.fit(X_train, y_train)
+
+rf = grid_tree.best_estimator_
+
+print("Best parameters: {}".format(grid_tree.best_params_))
 print("Training set score: {:.3f}".format(rf.score(X_train, y_train)))
 print("Test set score: {:.3f}".format(rf.score(X_test, y_test)))
 print("RMSE : {:.3f}".format(np.sqrt(mean_squared_error(y_test, rf.predict(X_test)))))
@@ -154,19 +219,6 @@ print("RMSE : {:.3f}".format(np.sqrt(mean_squared_error(y_test, rf.predict(X_tes
 seaborn.regplot(y=y.values, x=rf.predict(X))
 plt.title("Random forest")
 plt.show()
-
-std = np.std([tree.feature_importances_ for tree in rf.estimators_], axis=0)
-feature_imp = pd.DataFrame({"name": X.columns, "Coef": rf.feature_importances_})
-
-_, ax = plt.subplots(figsize=(10, 10))
-ax.barh(feature_imp["name"].iloc[::-1], feature_imp["Coef"].iloc[::-1], height=0.6, color="limegreen")
-
-ax.set_xlabel("Feature importance")
-ax.axvline(x=0, color="black", linewidth=0.5)
-plt.tight_layout()
-plt.savefig(outdir + "/" + "feature_importance.png")
-plt.show()
-plt.close()
 
 # learning_curve for Random forest
 train_sizes, train_scores, test_scores = learning_curve(estimator=rf, X=X_train, y=y_train,
@@ -202,36 +254,7 @@ plt.savefig(outdir + "/" + "correlation.png")
 plt.show()
 plt.close()
 
-import shap
-shap_values = shap.TreeExplainer(rf).shap_values(X_train)
-f = plt.figure()
-shap.summary_plot(shap_values, X_train, plot_type="bar")
-f.savefig(outdir + "/" + "shap_bar.png", bbox_inches="tight")
+make_shap_plot(model=rf, X=X_train, outdir=outdir)
 
-f = plt.figure()
-shap.summary_plot(shap_values, X_train)
-f.savefig(outdir + "/" + "shap_values.png", bbox_inches="tight")
-f.show()
-quit()
-
-# bolasso (in R)
-import pyper
-r = pyper.R(use_pandas="True")
-r("source(file='do_bolasso.r')")
-
-freq = pd.read_csv("bolasso_frequency.csv")
-freq.index = freq.iloc[:, 0]
-freq.index.name = "Descriptors"
-freq = freq.drop("Unnamed: 0", axis=1)
-freq = freq.drop("Intercept", axis=0)
-
-col = freq.columns.astype(float)
-col = col.map("{:.3f}".format)
-freq.columns = col
-
-_, ax = plt.subplots(figsize=(10, 10))
-seaborn.heatmap(freq, vmax=1, vmin=0, cbar=True, cmap="Blues", square=False, ax=ax)
-plt.savefig(outdir + "/" + "bolasso_frequency.png")
-#plt.grid(color="lightgray", ls=":", linewidth=1)
-plt.show()
-plt.close()
+test(df=df, model=grid.best_estimator_.named_steps["lasso"], model_type="lasso")
+test(df=df, model=rf, model_type="rf")
