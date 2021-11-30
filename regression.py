@@ -25,6 +25,9 @@ n_splits = 10
 n_repeats = 5
 cv = RepeatedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=1)
 
+# whether to show figure
+showfigure = True
+
 def make_dataframe_from_json(jsonfile=None):
 	import json
 	df = json.load(open(jsonfile, "r"))
@@ -74,13 +77,13 @@ def make_shap_plot(model=None, model_name=None, X=None, outdir=None):
 
 	fig = plt.figure()
 	fig.tight_layout()
-	shap.summary_plot(shap_values, X_train, plot_type="bar", plot_size=(10, 10))
+	shap.summary_plot(shap_values, X_train, plot_type="bar", plot_size=(10, 10), show=showfigure)
 	fig.savefig(outdir + "/" + "shap_values_" + model_name + ".png", bbox_inches="tight")
 	plt.close()
 
 	fig = plt.figure()
 	fig.tight_layout()
-	shap.summary_plot(shap_values, X_train, plot_size=(6, 10))
+	shap.summary_plot(shap_values, X_train, plot_size=(6, 10), show=showfigure)
 	fig.savefig(outdir + "/" + "shap_summary_" + model_name + ".png", bbox_inches="tight")
 	plt.close()
 
@@ -109,15 +112,16 @@ def plot_variability_of_coefficients(df=None, model=None, model_name="lasso", ou
 	else:
 		coefs = pd.DataFrame([est.feature_importances_ for est in cv_model["estimator"]], columns=feature_names[1:])
 
-	fig, ax = plt.subplots(figsize=(10, 10))
+	fig, ax = plt.subplots(figsize=(8, 8))
 	seaborn.boxplot(data=coefs, orient="h", saturation=0.5, color="cyan", linewidth=1.0)
-	ax.set_title("Variability of coefficients: " + model_name)
-	ax.set_xlabel("Coefficients")
+	ax.set_xlabel("Coefficient")
 	ax.axvline(x=0, color="black", linewidth=0.5)
 	ax.yaxis.grid(color="gray", linewidth=0.25)
 	fig.tight_layout()
 	plt.savefig(outdir + "/" + "coef_variability_" + model_name + ".png")
-	plt.show()
+	if showfigure:
+		plt.show()
+	plt.close()
 
 def plot_feature_importance(model=None, X=None, outdir=None):
 	"""
@@ -139,7 +143,8 @@ def plot_feature_importance(model=None, X=None, outdir=None):
 	ax.axvline(x=0, color="black", linewidth=0.5)
 	plt.tight_layout()
 	plt.savefig(outdir + "/" + "feature_importance.png")
-	plt.show()
+	if showfigure:
+		plt.show()
 	plt.close()
 
 def plot_correlation_matrix(df=None, outdir=None):
@@ -157,7 +162,30 @@ def plot_correlation_matrix(df=None, outdir=None):
 	seaborn.heatmap(corr, vmax=1, vmin=-1, center=0, annot=False, annot_kws={"size": 10},
 					cbar=True, cmap="RdBu_r", square=True, fmt=".1f", ax=ax)
 	plt.savefig(outdir + "/" + "correlation.png")
-	plt.show()
+	if showfigure:
+		plt.show()
+	plt.close()
+
+def plot_scatter_and_line(x=None, y=None, model_name=None, outdir=None):
+	"""
+	Plot the scattered points and regression line.
+
+	Args:
+		x: X
+		y: y
+		model_name:
+		outdir:
+	Returns:
+		None
+	"""
+	_, ax = plt.subplots(figsize=(8, 8))
+	seaborn.regplot(y=y, x=x, scatter_kws={"color": "navy", 'alpha': 0.3}, line_kws={"color": "navy"})
+	ax.set_xlabel("Predicted value")
+	ax.set_ylabel("True value")
+
+	plt.savefig(outdir + "/" + "regplot_" + model_name + ".png")
+	if showfigure:
+		plt.show()
 	plt.close()
 
 # main starts
@@ -210,20 +238,19 @@ for name, method in zip(names, methods):
 	print("Test set score: {:.3f}".format(grid.score(X_test, y_test)))
 	print("RMSE: {:.3f}".format(np.sqrt(mean_squared_error(y_test, grid.predict(X_test)))))
 
-	seaborn.regplot(y=y.values, x=grid.predict(X))
-	plt.title("%s regression" % name)
-	plt.show()
+	plot_scatter_and_line(x=grid.predict(X), y=y.values, model_name=name, outdir=outdir)
 
 # plot coefficient of LASSO
 lasso_coef = pd.DataFrame({"name": X.columns, "Coef": grid.best_estimator_.named_steps["lasso"].coef_})
-fig, ax = plt.subplots(figsize=(10, 10))
+fig, ax = plt.subplots(figsize=(8, 8))
 ax.barh(lasso_coef["name"].iloc[::-1], lasso_coef["Coef"].iloc[::-1], height=0.6, color="royalblue")
 ax.set_xlabel("Coefficient")
-
 ax.axvline(x=0, color="black", linewidth=0.5)
+ax.yaxis.grid(color="gray", linewidth=0.25)
 plt.tight_layout()
 plt.savefig(outdir + "/" + "lasso_coef.png")
-plt.show()
+if showfigure:
+	plt.show()
 plt.close()
 
 plot_variability_of_coefficients(df=df, model=grid.best_estimator_.named_steps["lasso"], model_name="lasso", outdir=outdir)
@@ -250,7 +277,8 @@ plt.xlabel("Number of training samples")
 plt.ylabel("Accuracy")
 plt.ylim([0.0, 1.0])
 plt.savefig(outdir + "/" + "learning_curve_lasso.png")
-plt.show()
+if showfigure:
+	plt.show()
 plt.close()
 #
 # Tree regression
@@ -275,9 +303,8 @@ for name, method in zip(names, methods):
 	print("Test set score: {:.3f}".format(method.score(X_test, y_test)))
 	print("RMSE : {:.3f}".format(np.sqrt(mean_squared_error(y_test, method.predict(X_test)))))
 
-	seaborn.regplot(y=y.values, x=method.predict(X))
-	plt.title(name)
-	plt.show()
+	# make regplot
+	plot_scatter_and_line(x=method.predict(X), y=y.values, model_name=name, outdir=outdir)
 
 	# learning_curve for Random forest
 	train_sizes, train_scores, test_scores = learning_curve(estimator=method, X=X_train, y=y_train,
@@ -299,7 +326,8 @@ for name, method in zip(names, methods):
 	plt.ylabel("Accuracy")
 	plt.ylim([0.0, 1.0])
 	plt.savefig(outdir + "/" + "learning_curve_" + name + ".png")
-	plt.show()
+	if showfigure:
+		plt.show()
 	plt.close()
 
 	plot_variability_of_coefficients(df=df, model=method, model_name=name, outdir=outdir)
