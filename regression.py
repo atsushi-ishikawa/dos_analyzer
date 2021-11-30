@@ -21,8 +21,8 @@ plt.rcParams["legend.framealpha"] = 1.0
 plt.rcParams["axes.axisbelow"] = True
 
 # cv as global variable
-n_splits = 5
-n_repeats = 6
+n_splits = 10
+n_repeats = 5
 cv = RepeatedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=1)
 
 def make_dataframe_from_json(jsonfile=None):
@@ -110,7 +110,7 @@ def plot_variability_of_coefficients(df=None, model=None, model_name="lasso", ou
 		coefs = pd.DataFrame([est.feature_importances_ for est in cv_model["estimator"]], columns=feature_names[1:])
 
 	fig, ax = plt.subplots(figsize=(10, 10))
-	seaborn.boxplot(data=coefs, orient="h", saturation=0.5, color="cyan")
+	seaborn.boxplot(data=coefs, orient="h", saturation=0.5, color="cyan", linewidth=1.0)
 	ax.set_title("Variability of coefficients: " + model_name)
 	ax.set_xlabel("Coefficients")
 	ax.axvline(x=0, color="black", linewidth=0.5)
@@ -119,8 +119,18 @@ def plot_variability_of_coefficients(df=None, model=None, model_name="lasso", ou
 	plt.savefig(outdir + "/" + "coef_variability_" + model_name + ".png")
 	plt.show()
 
-def plot_feature_importance(rf=None, X=None, outdir=None):
-	feature_imp = pd.DataFrame({"name": X.columns, "Coef": rf.feature_importances_})
+def plot_feature_importance(model=None, X=None, outdir=None):
+	"""
+	Plot feature importance of tree regressors.
+
+	Args:
+		model:
+		X:
+		outdir:
+	Returns:
+		None
+	"""
+	feature_imp = pd.DataFrame({"name": X.columns, "Coef": model.feature_importances_})
 
 	_, ax = plt.subplots(figsize=(10, 10))
 	ax.barh(feature_imp["name"].iloc[::-1], feature_imp["Coef"].iloc[::-1], height=0.6, color="limegreen")
@@ -133,6 +143,15 @@ def plot_feature_importance(rf=None, X=None, outdir=None):
 	plt.close()
 
 def plot_correlation_matrix(df=None, outdir=None):
+	"""
+	Plot correlation matrix among descriptors.
+
+	Args:
+		df: DataFrame
+		outdir: directory to save figure
+	Returns:
+		None
+	"""
 	corr = df.corr()
 	_, ax = plt.subplots(figsize=(12, 12))
 	seaborn.heatmap(corr, vmax=1, vmin=-1, center=0, annot=False, annot_kws={"size": 10},
@@ -141,36 +160,40 @@ def plot_correlation_matrix(df=None, outdir=None):
 	plt.show()
 	plt.close()
 
-# main
+# main starts
 outdir = "regression_results"
 os.makedirs(outdir, exist_ok=True)
 os.system("rm {}/*".format(outdir))
 
+# setup dataframe
 df = make_dataframe_from_json(jsonfile="sample.json")
 df = remove_irregular_samples(df)
 
+# define X and y
 X = df.drop("E_ads", axis=1)
-y = -df["E_ads"]
+y = -df["E_ads"]  # more positive = stronger adsorption
 
+# plot correlation matrix
+plot_correlation_matrix(df=df, outdir=outdir)
+
+# train-test split
 test_size = 1.0 / n_splits
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=1)
 
 scaler = StandardScaler()
 #scaler = MinMaxScaler()
-#scaler = RobustScaler()
-
-methods = [Ridge(), Lasso()]
-names   = ["ridge", "lasso"]
 
 print("----- Ordinary Linear Regression -----")
 lr = LinearRegression()
 lr.fit(X_train, y_train)
-
-#print(pd.DataFrame({"name": X.columns, "Coef": lr.coef_}).sort_values(by="Coef"))
 print("Training set score: {:.3f}".format(lr.score(X_train, y_train)))
 print("Test set score: {:.3f}".format(lr.score(X_test, y_test)))
 print("RMSE: {:.3f}".format(np.sqrt(mean_squared_error(y_test, lr.predict(X_test)))))
-
+#
+# ridge and lasso
+#
+methods = [Ridge(), Lasso()]
+names   = ["ridge", "lasso"]
 for name, method in zip(names, methods):
 	print("----- %s -----" % name)
 
@@ -229,12 +252,14 @@ plt.ylim([0.0, 1.0])
 plt.savefig(outdir + "/" + "learning_curve_lasso.png")
 plt.show()
 plt.close()
-
+#
 # Tree regression
+#
 print("===== Tree Regression =====")
-names   = ["randomforest", "xgb"]
-methods = [RandomForestRegressor(), XGBRegressor()]
-#methods = [RandomForestRegressor(), GradientBoostingRegressor(), ExtraTreesRegressor(), XGBRegressor()]
+#names   = ["randomforest", "xgb"]
+#methods = [RandomForestRegressor(), XGBRegressor()]
+names = ["randomforest", "gradientboosting", "extratree", "xgb"]
+methods = [RandomForestRegressor(), GradientBoostingRegressor(), ExtraTreesRegressor(), XGBRegressor()]
 for name, method in zip(names, methods):
 	print("----- %s -----" % name)
 
