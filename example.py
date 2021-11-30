@@ -1,9 +1,17 @@
 from dos_analyzer.vaspdosplus import VaspDosPlus
 import os
 import glob
+import argparse
 from tinydb import TinyDB
 
-jsonfile = "sample.json"
+parser = argparse.ArgumentParser()
+parser.add_argument("--jsonfile", default="sample.json", help="name of the json file containing surface information")
+parser.add_argument("--numpeaks", default=1, type=int, help="number of peaks")
+args = parser.parse_args()
+
+jsonfile = args.jsonfile
+numpeaks = args.numpeaks
+
 os.system("rm {}".format(jsonfile))
 db = TinyDB(jsonfile)
 
@@ -17,7 +25,7 @@ for idoscar in doscars:
 	dos = VaspDosPlus(doscar=idoscar)
 	dos.surf_jsonfile = "surf_data.json"
 	dos.system = system
-	dos.numpeaks = 3
+	dos.numpeaks = numpeaks
 
 	descriptor = dos.get_descriptors()
 
