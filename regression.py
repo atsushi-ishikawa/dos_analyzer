@@ -26,7 +26,7 @@ n_repeats = 5
 cv = RepeatedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=1)
 
 # whether to show figure
-showfigure = True
+showfigure = False
 
 def make_dataframe_from_json(jsonfile=None):
 	import json
@@ -178,11 +178,11 @@ def plot_scatter_and_line(x=None, y=None, model_name=None, outdir=None):
 	Returns:
 		None
 	"""
-	_, ax = plt.subplots(figsize=(8, 8))
+	fig, ax = plt.subplots(figsize=(6, 6))
 	seaborn.regplot(y=y, x=x, scatter_kws={"color": "navy", 'alpha': 0.3}, line_kws={"color": "navy"})
 	ax.set_xlabel("Predicted value")
 	ax.set_ylabel("True value")
-
+	fig.tight_layout()
 	plt.savefig(outdir + "/" + "regplot_" + model_name + ".png")
 	if showfigure:
 		plt.show()
