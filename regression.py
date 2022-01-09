@@ -253,7 +253,8 @@ if showfigure:
 	plt.show()
 plt.close()
 
-plot_variability_of_coefficients(df=df, model=grid.best_estimator_.named_steps["lasso"], model_name="lasso", outdir=outdir)
+plot_variability_of_coefficients(df=df, model=grid.best_estimator_.named_steps["lasso"],
+								 model_name="lasso", outdir=outdir)
 
 # learning_curve for LASSO
 best_param = list(grid.best_params_.values())[0]
