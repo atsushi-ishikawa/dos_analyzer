@@ -69,10 +69,10 @@ def make_shap_plot(model=None, model_name=None, X=None, outdir=None):
     SHAP (Shapley additive explanation) value plot.
 
     Args:
-            model: regression model
-            model_name: name of regression model
-            X:
-            outdir: directory to save file
+        model: regression model
+        model_name: name of regression model
+        X:
+        outdir: directory to save file
     Returns:
     """
     import shap
@@ -100,12 +100,12 @@ def plot_variability_of_coefficients(df=None, model=None, model_name="lasso", ou
     See https://scikit-learn.org/stable/auto_examples/inspection/plot_linear_model_coefficient_interpretation.html
 
     Args:
-            df:
-            model: regression model
-            model_name: name of regression model
-            outdir: directory to save file
+        df:
+        model: regression model
+        model_name: name of regression model
+        outdir: directory to save file
     Returns:
-            None
+        None
     """
     from sklearn.model_selection import cross_validate
 
@@ -138,11 +138,11 @@ def plot_feature_importance(model=None, X=None, outdir=None):
     Plot feature importance of tree regressors.
 
     Args:
-            model: regression model
-            X:
-            outdir: directory to save file
+        model: regression model
+        X:
+        outdir: directory to save file
     Returns:
-            None
+        None
     """
     feature_imp = pd.DataFrame({"name": X.columns, "Coef": model.feature_importances_})
 
@@ -164,10 +164,10 @@ def plot_correlation_matrix(df=None, outdir=None):
     Plot correlation matrix among descriptors.
 
     Args:
-            df: DataFrame
-            outdir: directory to save file
+        df: DataFrame
+        outdir: directory to save file
     Returns:
-            None
+        None
     """
     corr = df.corr()
     _, ax = plt.subplots(figsize=(12, 12))
@@ -184,12 +184,12 @@ def plot_scatter_and_line(x=None, y=None, model_name=None, outdir=None):
     Plot the scattered points and regression line.
 
     Args:
-            x: X
-            y: y
-            model_name:
-            outdir: directory to save file
+        x: X
+        y: y
+        model_name:
+        outdir: directory to save file
     Returns:
-            None
+        None
     """
     fig, ax = plt.subplots(figsize=(6, 6))
     seaborn.regplot(y=y, x=x, scatter_kws={"color": "navy",
@@ -278,9 +278,9 @@ pipe = Pipeline([("scl", scaler), ("lasso", Lasso(alpha=best_param))])
 train_sizes, train_scores, test_scores = learning_curve(estimator=pipe, X=X_train, y=y_train,
                                                         train_sizes=np.linspace(0.2, 1.0, 10), cv=cv)
 train_mean = np.mean(train_scores, axis=1)
-train_std = np.std(train_scores,  axis=1)
-test_mean = np.mean(test_scores,  axis=1)
-test_std = np.std(test_scores,   axis=1)
+train_std  = np.std(train_scores,  axis=1)
+test_mean  = np.mean(test_scores,  axis=1)
+test_std   = np.std(test_scores,   axis=1)
 
 plt.plot(train_sizes, train_mean, color="blue", marker="o", markersize=5, label="training accuracy")
 plt.fill_between(train_sizes, train_mean+train_std, train_mean-train_std, alpha=0.15, color="blue")
@@ -302,12 +302,11 @@ plt.close()
 # Tree regression
 #
 print("===== Tree Regression =====")
-names = ["randomforest", "gradientboosting", "extratree"]
-methods = [RandomForestRegressor(), GradientBoostingRegressor(), ExtraTreesRegressor()]
 
-# TODO: xgboost==1.5.2 causes some pands-related error
 #names = ["randomforest", "gradientboosting", "extratree", "xgb"]
 #methods = [RandomForestRegressor(), GradientBoostingRegressor(), ExtraTreesRegressor(), XGBRegressor()]
+names = ["randomforest", "extratree", "xgb"]
+methods = [RandomForestRegressor(), ExtraTreesRegressor(), XGBRegressor()]
 for name, method in zip(names, methods):
     print("----- %s -----" % name)
 

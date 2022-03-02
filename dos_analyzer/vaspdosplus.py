@@ -78,7 +78,7 @@ class VaspDosPlus:
         The number of peaks should be specified by VaspDosPlus.numpeaks.
 
         Returns:
-                descriptors (dict)
+            descriptors (dict)
         """
         check = False
 
@@ -221,9 +221,9 @@ class VaspDosPlus:
         Add system i.e. surface composition to the dict.
 
         Args:
-                dict:
+            dict:
         Returns:
-                dict:
+            dict:
         """
         tmp = {"system": self._system}
         dict.update(tmp)
@@ -234,9 +234,9 @@ class VaspDosPlus:
         Add adsorption energy (in eV) to dict.
 
         Args:
-                dict:
+            dict:
         Returns:
-                dict:
+            dict:
         """
         db = self.db
         id = db.get(system=self._system).id
@@ -250,9 +250,9 @@ class VaspDosPlus:
         Add geometry information (surface area etc.) to dict.
 
         Args:
-                dict:
+            dict:
         Returns:
-                dict:
+            dict:
         """
         db = self.db
         id = db.get(system=self._system).id
@@ -301,7 +301,7 @@ class VaspDosPlus:
         Plot the density of state.
 
         Args:
-                dos: density of state (numpy array)
+            dos: density of state (numpy array)
         """
         import seaborn as sb
         from scipy import fftpack
@@ -338,10 +338,10 @@ class VaspDosPlus:
         Get moments.
 
         Args:
-                pdos:
-                order:
+            pdos:
+            order:
         Returns:
-                order-th moment value (float)
+            order-th moment value (float)
         """
         from ase.dft import get_distribution_moment
         return get_distribution_moment(self.energy, pdos, order=order)
@@ -351,10 +351,10 @@ class VaspDosPlus:
         Get coordinating atom.
 
         Args:
-                atoms:
-                adsorbing_element:
+            atoms:
+            adsorbing_element:
         Returns:
-                coord_num (int): the atom index of the adsorption site.
+            coord_num (int): the atom index of the adsorption site.
         """
         coord_ind = []
         adsorbate_ind = atoms.get_chemical_symbols().index(adsorbing_element)
@@ -372,11 +372,11 @@ class VaspDosPlus:
         Get projected DOS.
 
         Args:
-                vaspdos: VaspDos object
-                atom_range:
-                orbital:
+            vaspdos: VaspDos object
+            atom_range:
+            orbital:
         Returns:
-                pdos: projected DOS.
+            pdos: projected DOS.
         """
         pdos = np.zeros(len(self.energy))
         for i in atom_range:
@@ -394,12 +394,12 @@ class VaspDosPlus:
         y = a*exp(-b*(x-x0)**2)
 
         Args:
-                x:
-                x0:
-                a:
-                b:
+            x:
+            x0:
+            a:
+            b:
         Returns:
-                y
+            y
         """
         x = np.array(x)
         y = np.exp(-b * (x - x0)**2)
@@ -411,10 +411,10 @@ class VaspDosPlus:
         Get smeared DOS.
 
         Args:
-                dos:
-                sigma:
+            dos:
+            sigma:
         Returns:
-                dos:
+            dos:
         """
         x = self.energy  # note: occpied part only
         y = dos
@@ -432,9 +432,9 @@ class VaspDosPlus:
         Find peak.
 
         Args:
-                y:
+            y:
         Returns:
-                index
+            index
         """
         import peakutils
         indexes = peakutils.indexes(y, thres=0.1, min_dist=1)
@@ -445,9 +445,9 @@ class VaspDosPlus:
         Convert 012 to spd.
 
         Args:
-                val:
+            val:
         Returns:
-                s or p or d (string)j
+            s or p or d (string)j
         """
         d = orbitals
         keys = [k for k, v in d.items() if v == val]
@@ -460,9 +460,9 @@ class VaspDosPlus:
         Note: assuming Total DOS, but PDOS might be OK.
 
         Args:
-                tdos:
+            tdos:
         Returns:
-                upper_edge, lower_edge (float):
+            upper_edge, lower_edge (float):
         """
         from scipy import fftpack
 
@@ -497,9 +497,9 @@ def get_efermi_from_doscar(DOSCAR):
     Get Fermi energy from DOSCAR file.
 
     Args:
-            DOSCAR:
+        DOSCAR:
     Returns:
-            efermi: Fermi energy
+        efermi: Fermi energy
     """
     import linecache
     line = linecache.getline(DOSCAR, 6)
@@ -513,9 +513,9 @@ def gaussian_fit(x, y, guess):
     """
 
     Args:
-            x:
-            y:
-            guess:
+        x:
+        y:
+        guess:
 
     Returns:
 
@@ -526,8 +526,8 @@ def gaussian_fit(x, y, guess):
         """
 
         Args:
-                x:
-                *params:
+            x:
+            *params:
 
         Returns:
 
@@ -564,8 +564,8 @@ def sort_peaks(peaks, key="height"):
     Assuming peaks are stored in [position, height, width,  position, height, width,...]
 
     Args:
-            peaks:
-            key:
+        peaks:
+        key:
     Returns:
 
     """
