@@ -20,9 +20,8 @@ plt.rcParams["legend.frameon"] = False
 plt.rcParams["legend.framealpha"] = 1.0
 plt.rcParams["axes.axisbelow"] = True
 
-# cv as global variable
 n_splits = 10
-n_repeats = 5
+n_repeats = 5  # K-fold CV
 cv = RepeatedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=1)
 
 # whether to show figure
@@ -115,11 +114,9 @@ def plot_variability_of_coefficients(df=None, model=None, model_name="lasso", ou
 
     cv_model = cross_validate(model, X, y, cv=cv, return_estimator=True)
     if model_name == "lasso":
-        coefs = pd.DataFrame([est.coef_ for est in cv_model["estimator"]],
-                             columns=feature_names[1:])
+        coefs = pd.DataFrame([est.coef_ for est in cv_model["estimator"]], columns=feature_names[1:])
     else:
-        coefs = pd.DataFrame(
-            [est.feature_importances_ for est in cv_model["estimator"]], columns=feature_names[1:])
+        coefs = pd.DataFrame([est.feature_importances_ for est in cv_model["estimator"]], columns=feature_names[1:])
 
     fig, ax = plt.subplots(figsize=(8, 8))
     seaborn.boxplot(data=coefs, orient="h", saturation=0.5, color="cyan", linewidth=1.0)
@@ -147,8 +144,7 @@ def plot_feature_importance(model=None, X=None, outdir=None):
     feature_imp = pd.DataFrame({"name": X.columns, "Coef": model.feature_importances_})
 
     _, ax = plt.subplots(figsize=(10, 10))
-    ax.barh(feature_imp["name"].iloc[::-1],
-            feature_imp["Coef"].iloc[::-1], height=0.6, color="limegreen")
+    ax.barh(feature_imp["name"].iloc[::-1], feature_imp["Coef"].iloc[::-1], height=0.6, color="limegreen")
 
     ax.set_xlabel("Feature importance")
     ax.axvline(x=0, color="black", linewidth=0.5)
@@ -192,8 +188,7 @@ def plot_scatter_and_line(x=None, y=None, model_name=None, outdir=None):
         None
     """
     fig, ax = plt.subplots(figsize=(6, 6))
-    seaborn.regplot(y=y, x=x, scatter_kws={"color": "navy",
-                    'alpha': 0.3}, line_kws={"color": "navy"})
+    seaborn.regplot(y=y, x=x, scatter_kws={"color": "navy", 'alpha': 0.3}, line_kws={"color": "navy"})
     ax.set_xlabel("Predicted value")
     ax.set_ylabel("True value")
     fig.tight_layout()
@@ -214,7 +209,8 @@ df = remove_irregular_samples(df)
 
 # define X and y
 X = df.drop("E_ads", axis=1)
-y = -df["E_ads"]  # more positive = stronger adsorption
+#y = -df["E_ads"]  # more positive = stronger adsorption
+y = df["E_ads"]  # more negative = stronger adsorption
 
 # plot correlation matrix
 plot_correlation_matrix(df=df, outdir=outdir)
@@ -247,7 +243,7 @@ for name, method in zip(names, methods):
     grid.fit(X_train, y_train)
 
     # print(pd.DataFrame({"name": X.columns,
-    #					"Coef": grid.best_estimator_.named_steps[name].coef_}).sort_values(by="Coef"))
+    #                     "Coef": grid.best_estimator_.named_steps[name].coef_}).sort_values(by="Coef"))
     print("Best parameters: {}".format(grid.best_params_))
     print("Training set score: {:.3f}".format(grid.score(X_train, y_train)))
     print("Test set score: {:.3f}".format(grid.score(X_test, y_test)))
@@ -256,8 +252,8 @@ for name, method in zip(names, methods):
     plot_scatter_and_line(x=grid.predict(X), y=y.values, model_name=name, outdir=outdir)
 
 # plot coefficient of LASSO
-lasso_coef = pd.DataFrame(
-    {"name": X.columns, "Coef": grid.best_estimator_.named_steps["lasso"].coef_})
+lasso_coef = pd.DataFrame({"name": X.columns, "Coef": grid.best_estimator_.named_steps["lasso"].coef_})
+
 fig, ax = plt.subplots(figsize=(8, 8))
 ax.barh(lasso_coef["name"].iloc[::-1], lasso_coef["Coef"].iloc[::-1], height=0.6, color="royalblue")
 ax.set_xlabel("Coefficient")
@@ -285,8 +281,7 @@ test_std   = np.std(test_scores,   axis=1)
 plt.plot(train_sizes, train_mean, color="blue", marker="o", markersize=5, label="training accuracy")
 plt.fill_between(train_sizes, train_mean+train_std, train_mean-train_std, alpha=0.15, color="blue")
 
-plt.plot(train_sizes, test_mean, color="green", marker="s",
-         markersize=5, label="validation accuracy")
+plt.plot(train_sizes, test_mean, color="green", marker="s", markersize=5, label="validation accuracy")
 plt.fill_between(train_sizes, test_mean+test_std, test_mean-test_std, alpha=0.15, color="green")
 
 plt.xticks()
@@ -333,13 +328,10 @@ for name, method in zip(names, methods):
     test_mean = np.mean(test_scores, axis=1)
     test_std = np.std(test_scores, axis=1)
 
-    plt.plot(train_sizes, train_mean, color="blue", marker="o",
-             markersize=5, label="training accuracy")
-    plt.fill_between(train_sizes, train_mean+train_std,
-                     train_mean-train_std, alpha=0.15, color="blue")
+    plt.plot(train_sizes, train_mean, color="blue", marker="o", markersize=5, label="training accuracy")
+    plt.fill_between(train_sizes, train_mean+train_std, train_mean-train_std, alpha=0.15, color="blue")
 
-    plt.plot(train_sizes, test_mean, color="green", marker="s",
-             markersize=5, label="validation accuracy")
+    plt.plot(train_sizes, test_mean, color="green", marker="s", markersize=5, label="validation accuracy")
     plt.fill_between(train_sizes, test_mean+test_std, test_mean-test_std, alpha=0.15, color="green")
 
     plt.xticks()
