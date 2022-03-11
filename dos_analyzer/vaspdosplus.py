@@ -28,20 +28,23 @@ class VaspDosPlus:
 
         # limit analysis on occupied part only
         energy = self.vaspdos.energy
-        self.energy = list(filter(lambda x: x <= self.efermi + self.margin, energy))
+        self.energy = np.array(list(filter(lambda x: x <= self.efermi + self.margin, energy)))
 
         # finding natom
         with open(doscar, "r") as f:
             line1 = f.readline()
             self.natom = int(line1.split()[0])
 
-        self.normalize_height = True  # True is maybe better
+        self.normalize_height = True    # True is maybe better
         self.relative_to_fermi = False  # False is better
         self.do_hilbert = False
         self.do_cohp = False
         self.geometry_information = False
 
-        self.sigma = 50  # smearing width
+        self.sigma = [20, 40, 70]  # smearing width ... 30-60
+
+        if self.relative_to_fermi:
+            self.energy -= self.efermi
 
     @property
     def numpeaks(self):
@@ -98,12 +101,12 @@ class VaspDosPlus:
             pdos = self.get_pdos(self.vaspdos, atom_range=range(48, 64), orbital=orbital)  # surface
 
             # smear the dos
-            pdos = self.smear_dos(pdos, sigma=self.sigma)
+            pdos = self.smear_dos(pdos, sigma=self.sigma[orbital])
 
             # find peaks to make guess for Gaussian fit
             peaks = self.findpeak(pdos)
 
-            width = 1.0 * (1 / self.sigma**0.5)  # guess
+            width = 1.0 * (1 / self.sigma[orbital]**0.5)  # guess
             params = []
             for idx in peaks:
                 params.append(self.energy[idx])
@@ -122,7 +125,7 @@ class VaspDosPlus:
                 peaks = [(0, 0, 0) for _ in range(self._numpeaks)]
 
             # discard if R^2 is too low
-            if r2 < 0.90:  # 0.98:
+            if r2 < 0.90:
                 print("fitting failed: R^2 ({:>5.3f}) is too low ... quit".format(r2))
                 peaks = [(0, 0, 0) for _ in range(self._numpeaks)]
 
@@ -147,8 +150,7 @@ class VaspDosPlus:
             vir_peaks = vir_peaks + [(0, 0, 0)] * (self._numpeaks - len(vir_peaks))
 
             if self.do_cohp:
-                cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center = cohp_analysis(
-                    cohpcar)
+                cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center = cohp_analysis(cohpcar)
 
             # occupied and virtual
             position_occ = []
@@ -188,6 +190,8 @@ class VaspDosPlus:
             #descriptors.update({orb_name + "_second": second})
             #third = self.get_moments(pdos, order=3)
             #descriptors.update({orb_name + "_third": third})
+            #forth = self.get_moments(pdos, order=3)
+            #descriptors.update({orb_name + "_forth": forth})
 
         # end loop for orbitals
 
@@ -545,8 +549,7 @@ def gaussian_fit(x, y, guess):
     # ftol, xtol, gtol: default is 1.0e-8. Used 1.0e-6 to reduced the drop-off DOSs.
     #
     tol = 1.0e-8   # OK
-    popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf",
-                           ftol=tol, xtol=tol, gtol=tol)  # good peak 1-2-3
+    popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="trf", ftol=tol, xtol=tol, gtol=tol)
     #popt, pcov = curve_fit(fit_func, x, y, p0=guess, method="lm", ftol=tol, xtol=tol, gtol=tol)
 
     fit = fit_func(x, *popt)
