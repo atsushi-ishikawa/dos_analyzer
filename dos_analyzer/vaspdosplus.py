@@ -41,7 +41,8 @@ class VaspDosPlus:
         self.do_cohp = False
         self.geometry_information = False
 
-        self.sigma = [20, 40, 70]  # smearing width ... 30-60
+        #self.sigma = [20, 40, 70]  # smearing width ... 30-60
+        self.sigma = [20, 40, 80]  # smearing width ... 30-60
 
         if self.relative_to_fermi:
             self.energy -= self.efermi

@@ -3,7 +3,7 @@ import numpy as np
 import seaborn
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.linear_model import Ridge, Lasso
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.model_selection import train_test_split, GridSearchCV, learning_curve, RepeatedKFold
 from sklearn.metrics import mean_squared_error
@@ -11,6 +11,7 @@ from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, ExtraTreesRegressor
 from xgboost import XGBRegressor
 from matplotlib import rcParams
+from sklearn.model_selection import cross_val_score
 
 plt.rcParams["font.family"] = "arial"
 plt.rcParams["font.size"] = 16
@@ -22,7 +23,7 @@ plt.rcParams["axes.axisbelow"] = True
 
 n_splits  = 10  # K-fold CV (default: 5 -> 10)
 n_repeats = 10  # number of repeats (default: 10)
-random_state = 1
+random_state = 0
 cv = RepeatedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=random_state)
 
 # whether to show figure
@@ -65,7 +66,7 @@ def remove_irregular_samples(df=None):
     after = len(df)
     print("removing strange peak: {0:d} --> {1:d}".format(before, after))
 
-    imp_mean = SimpleImputer(missing_values=0.0, strategy="mean")
+    imp_mean = SimpleImputer(missing_values=0.0, strategy="median")   # median is better
     df2 = pd.DataFrame(imp_mean.fit_transform(df))
     df2.index = df.index
     df2.columns = df.columns
@@ -237,13 +238,8 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, r
 
 scaler = StandardScaler()
 #scaler = MinMaxScaler()
+#scaler = RobustScaler()
 
-print("----- Ordinary Linear Regression -----")
-lr = LinearRegression()
-lr.fit(X_train, y_train)
-print("Training set score: {:.3f}".format(lr.score(X_train, y_train)))
-print("Test set score: {:.3f}".format(lr.score(X_test, y_test)))
-print("RMSE: {:.3f}".format(np.sqrt(mean_squared_error(y_test, lr.predict(X_test)))))
 #
 # ridge and lasso
 #
@@ -258,11 +254,14 @@ for name, method in zip(names, methods):
 
     grid = GridSearchCV(pipe, param_grid=param_grid, cv=cv)
     grid.fit(X_train, y_train)
+    cv_score = cross_val_score(grid, X_train, y_train, cv=cv, scoring="neg_root_mean_squared_error")
 
     print("Best parameters: {}".format(grid.best_params_))
-    print("Training set score: {:.3f}".format(grid.score(X_train, y_train)))
-    print("Test set score: {:.3f}".format(grid.score(X_test, y_test)))
-    print("RMSE: {:.3f}".format(np.sqrt(mean_squared_error(y_test, grid.predict(X_test)))))
+    print("Score(train): {:.3f}".format(grid.score(X_train, y_train)))
+    print("Score(test) : {:.3f}".format(grid.score(X_test, y_test)))
+    print("RMSE(train) : {:.3f}".format(np.sqrt(mean_squared_error(y_train, grid.predict(X_train)))))
+    print("RMSE(CV)    : {0:.3f}, std: {1:.3f}".format(-cv_score.mean(), cv_score.std()))
+    print("RMSE(test)  : {:.3f}".format(np.sqrt(mean_squared_error(y_test, grid.predict(X_test)))))
 
     plot_scatter_and_line(x=grid.predict(X), y=y.values, model_name=name, outdir=outdir)
 
@@ -281,24 +280,23 @@ if showfigure:
 plt.clf()
 plt.close()
 
-plot_variability_of_coefficients(df=df, model=grid.best_estimator_.named_steps["lasso"],
-                                 model_name="lasso", outdir=outdir)
+lasso = grid.best_estimator_.named_steps["lasso"]
+plot_variability_of_coefficients(df=df, model=lasso, model_name="lasso", outdir=outdir)
 
 # learning_curve for LASSO
 best_param = list(grid.best_params_.values())[0]
 pipe = Pipeline([("scl", scaler), ("lasso", Lasso(alpha=best_param))])
-train_sizes, train_scores, test_scores = learning_curve(estimator=pipe, X=X_train, y=y_train,
-                                                        train_sizes=np.linspace(0.2, 1.0, 10), cv=cv)
+train_sizes, train_scores, val_scores = learning_curve(estimator=pipe, X=X_train, y=y_train, scoring="r2",
+                                                       train_sizes=np.linspace(0.2, 1.0, 10), cv=cv)
 train_mean = np.mean(train_scores, axis=1)
 train_std  = np.std(train_scores, axis=1)
-test_mean  = np.mean(test_scores, axis=1)
-test_std   = np.std(test_scores, axis=1)
+val_mean   = np.mean(val_scores, axis=1)
+val_std    = np.std(val_scores, axis=1)
 
 plt.plot(train_sizes, train_mean, color="blue", marker="o", markersize=5, label="training accuracy")
 plt.fill_between(train_sizes, train_mean+train_std, train_mean-train_std, alpha=0.15, color="blue")
-
-plt.plot(train_sizes, test_mean, color="green", marker="s", markersize=5, label="validation accuracy")
-plt.fill_between(train_sizes, test_mean+test_std, test_mean-test_std, alpha=0.15, color="green")
+plt.plot(train_sizes, val_mean, color="green", marker="s", markersize=5, label="validation accuracy")
+plt.fill_between(train_sizes, val_mean+val_std, val_mean-val_std, alpha=0.15, color="green")
 
 plt.xticks()
 plt.yticks()
@@ -330,27 +328,29 @@ for name, method in zip(names, methods):
 
     method = grid_tree.best_estimator_
 
+    cv_score = cross_val_score(method, X_train, y_train, cv=cv, scoring="neg_root_mean_squared_error")
     print("Best parameters: {}".format(grid_tree.best_params_))
-    print("Training set score: {:.3f}".format(method.score(X_train, y_train)))
-    print("Test set score: {:.3f}".format(method.score(X_test, y_test)))
-    print("RMSE : {:.3f}".format(np.sqrt(mean_squared_error(y_test, method.predict(X_test)))))
+    print("Score(train): {:.3f}".format(method.score(X_train, y_train)))
+    print("Score(test) : {:.3f}".format(method.score(X_test, y_test)))
+    print("RMSE(train) : {:.3f}".format(np.sqrt(mean_squared_error(y_train, method.predict(X_train)))))
+    print("RMSE(CV)    : {0:.3f}, std: {1:.3f}".format(-cv_score.mean(), cv_score.std()))
+    print("RMSE(test)  : {:.3f}".format(np.sqrt(mean_squared_error(y_test, method.predict(X_test)))))
 
     # make regplot
     plot_scatter_and_line(x=method.predict(X), y=y.values, model_name=name, outdir=outdir)
 
     # learning_curve for Random forest
-    train_sizes, train_scores, test_scores = learning_curve(estimator=method, X=X_train, y=y_train,
-                                                            train_sizes=np.linspace(0.2, 1.0, 10), cv=cv)
+    train_sizes, train_scores, val_scores = learning_curve(estimator=method, X=X_train, y=y_train, scoring="r2",
+                                                           train_sizes=np.linspace(0.2, 1.0, 10), cv=cv)
     train_mean = np.mean(train_scores, axis=1)
     train_std = np.std(train_scores, axis=1)
-    test_mean = np.mean(test_scores, axis=1)
-    test_std = np.std(test_scores, axis=1)
+    val_mean = np.mean(val_scores, axis=1)
+    val_std = np.std(val_scores, axis=1)
 
     plt.plot(train_sizes, train_mean, color="blue", marker="o", markersize=5, label="training accuracy")
     plt.fill_between(train_sizes, train_mean+train_std, train_mean-train_std, alpha=0.15, color="blue")
-
-    plt.plot(train_sizes, test_mean, color="green", marker="s", markersize=5, label="validation accuracy")
-    plt.fill_between(train_sizes, test_mean+test_std, test_mean-test_std, alpha=0.15, color="green")
+    plt.plot(train_sizes, val_mean, color="green", marker="s", markersize=5, label="validation accuracy")
+    plt.fill_between(train_sizes, val_mean+val_std, val_mean-val_std, alpha=0.15, color="green")
 
     plt.xticks()
     plt.yticks()
