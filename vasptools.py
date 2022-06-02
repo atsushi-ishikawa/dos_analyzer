@@ -24,6 +24,7 @@ def lattice_info_guess(bulk):
 
 	return lattice, a0
 
+
 def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=1):
 	from ase import Atoms
 	from ase.build import bulk
@@ -58,6 +59,7 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
 		bulk.set_chemical_symbols(list)
 
 	return bulk
+
 
 def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol",
 							  encut=400, ediff=1.0e-5, ediffg=1.0e-6, npar=1, nsim=1):
@@ -106,6 +108,7 @@ def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol",
 	os.chdir(cudir)
 	shutil.rmtree(workdir)
 
+
 def sort_atoms_by_z(atoms):
 	from ase import Atoms, Atom
 	import numpy as np
@@ -137,6 +140,7 @@ def sort_atoms_by_z(atoms):
 
 	return newatoms
 
+
 def make_lobsterin():
 	"""
 	make input file for lobster (lobsterin) for alloy systems
@@ -147,6 +151,7 @@ def make_lobsterin():
 	str = " \n".join(str)
 	f.write(str)
 	f.close()
+
 
 def read_cohp(cohpfile="COHPCAR.lobster"):
 	f = open(cohpfile, "r")
