@@ -3,7 +3,7 @@ import sys
 
 # pure metals
 # note: no need to do separate calculation for pure metals when making alloy-including database,
-#       just set "First=True" flag in alloy part
+#       just set "first_time=True" flag in alloy part
 
 alloy = True
 env = "hokudai"  # or "hokudai"
@@ -18,8 +18,7 @@ dict = {
   "6": {"element": "Au", "lattice": "fcc"}
 }
 
-first = True
-# alloy
+first_time = True
 if alloy:
     for i in range(0, len(dict)):
         elm1 = dict[str(i)]["element"]
@@ -33,12 +32,12 @@ if alloy:
             #for cmp1 in range(25,100,25): # start, end, diff
 
             # --- change by 10%
-            #first = False
+            #first_time = False
             #for cmp1 in range(10,50,10):  # start, end, diff # part1
             #for cmp1 in range(50,100,10): # start, end, diff # part2
 
             # --- change by 5%
-            first = True
+            first_time = True
             # for cmp1 in range(25,50,5):  # start, end, diff # part2
             # for cmp1 in range(50,75,5):  # start, end, diff # part3
             # for cmp1 in range(75,100,5): # start, end, diff # part4
@@ -51,9 +50,9 @@ if alloy:
 
                 os.system(command)
 
-# do pure metal if the loop is first
-if first:
-    for i in range(0,len(dict)):
+# do pure metal if the loop is first_time
+if first_time:
+    for i in range(0, len(dict)):
         element = dict[str(i)]["element"]
         if env == "ito":
             command = "pjsub -x \"INP1={0}\" run_kyushu.sh".format(element)
