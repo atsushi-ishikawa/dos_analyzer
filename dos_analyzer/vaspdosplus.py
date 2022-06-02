@@ -8,7 +8,6 @@ import matplotlib.pylab as plt
 
 orbitals = {"s": 0, "p": 1, "d": 2}
 
-
 class VaspDosPlus:
     def __init__(self, doscar=None):
         self.doscar = doscar
