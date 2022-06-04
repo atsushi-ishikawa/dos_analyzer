@@ -44,9 +44,9 @@ if alloy:
 
             for cmp1 in range(5, 25, 5):   # start, end, diff # part1
                 if env == "ito":
-                    cmd = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_kyushu.sh".format(elm1, elm2, cmp1)
+                    cmd = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_ito.sh".format(elm1, elm2, cmp1)
                 elif env == "hokudai":
-                    cmd = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_vasp.sh".format(elm1, elm2, cmp1)
+                    cmd = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_grand.sh".format(elm1, elm2, cmp1)
 
                 os.system(command)
 
@@ -55,7 +55,7 @@ if first_time:
     for i in range(0, len(dict)):
         element = dict[str(i)]["element"]
         if env == "ito":
-            command = "pjsub -x \"INP1={0}\" run_kyushu.sh".format(element)
+            command = "pjsub -x \"INP1={0}\" run_ito.sh".format(element)
         elif env == "hokudai":
             command = "pjsub -x \"INP1={0}\" run_vasp.sh".format(element)
         os.system(command)
