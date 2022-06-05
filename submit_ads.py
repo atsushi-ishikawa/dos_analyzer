@@ -6,7 +6,7 @@ import sys
 #       just set "first_time=True" flag in alloy part
 
 alloy = True
-env = "hokudai"  # or "hokudai"
+env = "grand"  # "ito" or "grand"
 
 dict = {
   "0": {"element": "Rh", "lattice": "fcc"},
@@ -45,17 +45,18 @@ if alloy:
             for cmp1 in range(5, 25, 5):   # start, end, diff # part1
                 if env == "ito":
                     cmd = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_ito.sh".format(elm1, elm2, cmp1)
-                elif env == "hokudai":
+                elif env == "grand":
                     cmd = "pjsub -x \"INP1={0}\" -x \"INP2={1}\" -x \"INP3={2}\" run_grand.sh".format(elm1, elm2, cmp1)
 
                 os.system(command)
 
 # do pure metal if the loop is first_time
 if first_time:
+    ads = "CH3"
     for i in range(0, len(dict)):
-        element = dict[str(i)]["element"]
+        elm = dict[str(i)]["element"]
         if env == "ito":
-            command = "pjsub -x \"INP1={0}\" run_ito.sh".format(element)
+            command = "pjsub -x \"INP1={0}\" \"INP2={1}\" run_ito.sh".format(elm, ads)
         elif env == "hokudai":
-            command = "pjsub -x \"INP1={0}\" run_vasp.sh".format(element)
+            command = "pjsub -x \"INP1={0}\" \"INP2={1}\" run_grand.sh".format(elm, ads)
         os.system(command)

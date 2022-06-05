@@ -29,8 +29,15 @@ cv = RepeatedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=random_s
 # whether to show figure
 showfigure = False
 
-
 def make_dataframe_from_json(jsonfile=None):
+    """
+    Get descriptors from json file.
+
+    Args:
+        jsonfile:
+    Returns:
+        df:
+    """
     import json
     df = json.load(open(jsonfile, "r"))
     df = pd.DataFrame(df["_default"])

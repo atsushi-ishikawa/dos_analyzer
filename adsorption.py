@@ -33,26 +33,29 @@ lobster = "/lustre0/home/n22240/lobster/lobster-3.2.0/lobster-3.2.0"
 argvs     = sys.argv
 element1  = argvs[1]
 
-if len(argvs) == 4:
+if len(argvs) == 5:
     #
     # in case of alloys
     #
     alloy = True
-    element2 = argvs[2]
-    comp1    = int(argvs[3])
-    comp2    = 100 - comp1
-    element  = element1 + "{:.2f}".format(comp1/100.0) + element2 + "{:.2f}".format(comp2/100.0)
+    element2  = argvs[2]
+    comp1     = int(argvs[3])
+    comp2     = 100 - comp1
+    element   = element1 + "{:.2f}".format(comp1/100.0) + element2 + "{:.2f}".format(comp2/100.0)
+    adsorbate = argvs[4]
 else:
     alloy = False
-    element  = element1
+    element   = element1
+    adsorbate = argvs[2]
 
 face = (1, 1, 1)
 face_str = ",".join(map(str, face)).replace(",", "")
 
 position_str = "atop"  # atop, hcp, fcc
+
 #adsorbate = "O"
 #adsorbate = "CO"
-adsorbate = "CH3"
+#adsorbate = "CH3"
 
 if adsorbate == "CO":
     ads_height = 1.6
@@ -61,6 +64,7 @@ elif adsorbate == "CH3":
     ads_height = 2.2
     ads_geom  = [(1, 1, 0), (0.4, 1, 0), (1.6, 1, 0), (1, 1.6, 0)]
 else:
+    # atom
     ads_height = 1.8
     ads_geom  = [(0, 0, 0)]
 
@@ -201,7 +205,6 @@ surf = surface(bulk, face, nlayer, vacuum=vacuum)
 surf.translate([0, 0, -vacuum])
 
 surf = sort_atoms_by_z(surf)
-
 #
 # setting tags for relax/freeze
 #
@@ -216,15 +219,13 @@ surf.set_tags(tag)
 # if x goes to negative ... invert to positive
 #
 if np.any(surf.cell[:, 0] < 0):
-    #
+
     # invert atoms
-    #
     for i in range(len(surf)):
         xpos = surf[i].position[0]
         surf[i].position[0] = -xpos
-    #
+
     # invert cell
-    #
     xpos = surf.cell[1, 0]
     surf.cell[1, 0] = -xpos
 
@@ -258,8 +259,8 @@ if "vasp" in calculator:
     #
     # copy DOSCAR
     #
-    dosfile  = "DOSCAR_" + element + "_" + face_str
-    dosfile  = os.path.join(cudir, dosfile)
+    dosfile = "DOSCAR_" + element + "_" + face_str
+    dosfile = os.path.join(cudir, dosfile)
     os.system("cp DOSCAR %s" % dosfile)
     #
     # printout Efermi
@@ -290,6 +291,12 @@ elif "emt" in calculator:
 
 mol.set_calculator(calc_mol)
 e_mol = mol.get_potential_energy()
+
+# copy DOSCAR of adsorbate, if not exists
+dosfile = "DOSCAR_" + adsorbate
+dosfile = os.path.join(cudir, dosfile)
+if not os.path.exists(dosfile):
+    os.system("cp DOSCAR %s" % dosfile)
 #
 # ------------------- surface + adsorbate -------------------
 #

@@ -16,18 +16,32 @@ os.system("rm {}".format(jsonfile))
 db = TinyDB(jsonfile)
 
 doscardir = "doscars"
-doscars = glob.glob(doscardir + "/" + "DOSCAR*")
+doscars = glob.glob(doscardir + "/" + "DOSCAR*")  # surface
 
+# adsorbate
+data = {}
+
+dos = VaspDosPlus(doscar=idoscar)
+dos.ads_jsonfile = "ads_data.json"
+dos.system = system
+dos.numpeaks = numpeaks
+
+descriptor = dos.get_descriptors()
+
+data.update(descriptor)
+db.insert(data)
+
+# surface
 for idoscar in doscars:
-	system = idoscar.split("_")[1] + "_" + idoscar.split("_")[2]
-	data = {}
+    system = idoscar.split("_")[1] + "_" + idoscar.split("_")[2]
+    data = {}
 
-	dos = VaspDosPlus(doscar=idoscar)
-	dos.surf_jsonfile = "surf_data.json"
-	dos.system = system
-	dos.numpeaks = numpeaks
+    dos = VaspDosPlus(doscar=idoscar)
+    dos.surf_jsonfile = "surf_data.json"
+    dos.system = system
+    dos.numpeaks = numpeaks
 
-	descriptor = dos.get_descriptors()
+    descriptor = dos.get_descriptors()
 
-	data.update(descriptor)
-	db.insert(data)
+    data.update(descriptor)
+    db.insert(data)

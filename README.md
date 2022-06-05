@@ -3,8 +3,8 @@
 1. VASPの計算を行う:
 * サンプルスクリプト: `adsorption.py`
 * bimetallic alloyを想定。上記pythonスクリプトの引数で計算対象を指定する。例えば、
-`python adsorption.py Pt` --> pure metalを計算
-`python adsorption.py Pt Pd 50` --> Pt0.5Pd0.5のalloyを計算。第三引数は第一引数の元素のパーセンテージ。
+`python adsorption.py Pt "CO"` --> pure metalを計算
+`python adsorption.py Pt Pd 50 "CO"` --> Pt0.5Pd0.5のalloyを計算。第三引数は第一引数の元素のパーセンテージ
 * adsorption.pyを実行すると計算条件と計算結果がjsonファイル(**surf_data.json**)に追記される。汎関数や吸着エネルギーなど。
 * *DOSCAR* と *vasprun_{system}.xml* が出力される。systemはalloy surfaceの名前(Ru0.5Rh0.5_111など)
 * bimetallic alloyの成分を変えながら、一連の計算をsubmitするには**submit_ads.py**を使う
@@ -12,7 +12,7 @@
 
 2. DOSCARのpeakを検出する:
 * サンプルスクリプト: `example.py`
-* `dos_analyzer`モジュールを利用
+* `dos_analyzer`ライブラリーを利用
 * DOSCARを読み込んでs, p, d-DOSのピークを検出してdescriptorにする
 * `VaspDosPlus`クラスを定義: DOSCARファイル名をインスタンス作成時に与える(`dos = VaspDosPlus(doscar=DOSCAR)`)
 * 表面のVASP計算のデータが入ったjsonファイルが必要: `VaspDosPlus`の`surf_json`プロパティで設定
