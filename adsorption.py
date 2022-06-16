@@ -343,7 +343,8 @@ if "vasp" in calculator:
 # write to surf
 #
 system = element + "_" + face_str
-db_surf.write(surf, system=system, lattice=lattice, data={"E_ads": e_ads, "E_form": e_form, "E_surf": e_surf})
+db_surf.write(surf, system=system, lattice=lattice, data={"E_ads[" + adsorbate + "]": e_ads,
+                                                          "E_form": e_form, "E_surf": e_surf})
 #
 # remove working directory
 #

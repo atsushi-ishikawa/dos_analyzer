@@ -42,15 +42,15 @@ def make_dataframe_from_json(jsonfile=None):
     df = json.load(open(jsonfile, "r"))
     df = pd.DataFrame(df["_default"])
     df = df.T
-    df = df.set_index("system")
+    df = df.set_index("surface")
     df = pd.DataFrame(df, dtype=float)
     return df
 
 
 def make_dataframe_form_csv(csvfile=None):
     df = pd.read_csv(csvfile)
-    if "system" in df.columns:
-        df = df.drop("system", axis=1)
+    if "surface" in df.columns:
+        df = df.drop("surface", axis=1)
     if "Unnamed: 0" in df.columns:
         df = df.drop("Unnamed: 0", axis=1)
     return df
@@ -228,13 +228,23 @@ os.makedirs(outdir, exist_ok=True)
 os.system("rm {}/*".format(outdir))
 
 # setup dataframe
-df = make_dataframe_from_json(jsonfile="sample.json")
-df = remove_irregular_samples(df)
+df_surf = make_dataframe_from_json(jsonfile="surf_xy.json")
+X_surf = df_surf.drop("E_ads", axis=1)
 
-# define X and y
-X = df.drop("E_ads", axis=1)
+# adsorbate
+adsorbate = "CH3"
+df_ads = make_dataframe_form_json(jsonfile=adsorbate + "_x" + ".json")
+X_ads  = df_ads
+
+# concat
+X = pd.concat(X_surf, X_ads, axis=1)
+
+key = "E_ads[" + adsorbate + "]"
+y = df[key]
+
+#df = remove_irregular_samples(df)
 #y = -df["E_ads"]  # more positive = stronger adsorption
-y = df["E_ads"]  # more negative = stronger adsorption
+#y = df["E_ads"]  # more negative = stronger adsorption
 
 # plot correlation matrix
 plot_correlation_matrix(df=df, outdir=outdir)

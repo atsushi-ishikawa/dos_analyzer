@@ -9,14 +9,18 @@ alloy = True
 env = "grand"  # "ito" or "grand"
 
 dict = {
-  "0": {"element": "Rh", "lattice": "fcc"},
-  "1": {"element": "Pd", "lattice": "fcc"},
-  "2": {"element": "Ir", "lattice": "fcc"},
-  "3": {"element": "Pt", "lattice": "fcc"},
-  "4": {"element": "Cu", "lattice": "fcc"},
-  "5": {"element": "Ag", "lattice": "fcc"},
-  "6": {"element": "Au", "lattice": "fcc"}
-}
+  "0":  {"element": "Rh", "lattice": "fcc"},
+  "1":  {"element": "Pd", "lattice": "fcc"},
+  "2":  {"element": "Ir", "lattice": "fcc"},
+  "3":  {"element": "Pt", "lattice": "fcc"},
+  "4":  {"element": "Cu", "lattice": "fcc"},
+  "5":  {"element": "Ag", "lattice": "fcc"},
+  "6":  {"element": "Au", "lattice": "fcc"},
+  "7":  {"element": "Ru", "lattice": "fcc"},
+  "8":  {"element": "Os", "lattice": "fcc"},
+  "9":  {"element": "Cd", "lattice": "fcc"},
+  "10": {"element": "Hg", "lattice": "fcc"}
+  }
 
 first_time = True
 if alloy:

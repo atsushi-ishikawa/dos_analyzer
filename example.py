@@ -5,40 +5,39 @@ import argparse
 from tinydb import TinyDB
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--jsonfile", default="sample.json", help="name of the json file containing surface information")
-parser.add_argument("--numpeaks", default=1, type=int, help="number of peaks")
+parser.add_argument("--surf_json", default="surf_xy.json", help="name of the json file containing surface information")
+parser.add_argument("--numpeaks",  default=1, type=int, help="number of peaks in surface dos")
 args = parser.parse_args()
 
-jsonfile = args.jsonfile
+surf_json = args.surf_json
 numpeaks = args.numpeaks
 
-os.system("rm {}".format(jsonfile))
-db = TinyDB(jsonfile)
+os.system("rm {}".format(surf_json))
+db = TinyDB(surf_json)
 
 doscardir = "doscars"
 doscars = glob.glob(doscardir + "/" + "DOSCAR*")  # surface
 
 # adsorbate
+adsorbate = "CH3"
+
 data = {}
-
 dos = VaspDosPlus(doscar=idoscar)
-dos.ads_jsonfile = "ads_data.json"
+dos.ads_json = adsorbate + "_x.json"
 dos.system = system
-dos.numpeaks = numpeaks
-
+dos.numpeaks = 1  # only one peak in adsorbate
 descriptor = dos.get_descriptors()
-
 data.update(descriptor)
 db.insert(data)
 
 # surface
 for idoscar in doscars:
-    system = idoscar.split("_")[1] + "_" + idoscar.split("_")[2]
+    surface = idoscar.split("_")[1] + "_" + idoscar.split("_")[2]
     data = {}
 
     dos = VaspDosPlus(doscar=idoscar)
     dos.surf_jsonfile = "surf_data.json"
-    dos.system = system
+    dos.surface = surface
     dos.numpeaks = numpeaks
 
     descriptor = dos.get_descriptors()

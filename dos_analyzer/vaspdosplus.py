@@ -13,7 +13,7 @@ class VaspDosPlus:
         self.doscar = doscar
 
         self._surf_jsonfile = None
-        self._system = None
+        self._surface = None
         self._numpeaks = None
 
         self.db = None
@@ -55,12 +55,12 @@ class VaspDosPlus:
         self._numpeaks = number_of_peaks
 
     @property
-    def system(self):
-        return self._system
+    def surface(self):
+        return self._surface
 
-    @system.setter
-    def system(self, systemname=None):
-        self._system = systemname
+    @surface.setter
+    def surface(self, surfacename=None):
+        self._surface = surfacename
 
     @property
     def surf_jsonfile(self):
@@ -88,13 +88,13 @@ class VaspDosPlus:
         self.set_database()
 
         descriptors = {}
-        descriptors = self.add_system_to_dict(dict=descriptors)
+        descriptors = self.add_surface_to_dict(dict=descriptors)
         descriptors = self.add_adsorption_energy_to_dict(dict=descriptors)
 
         if self.do_cohp:
-            cohpcar = self._system + "COHPCAR"
+            cohpcar = self._surface + "COHPCAR"
 
-        print(" ----- %s ----- " % self._system)
+        print(" ----- surface - {0:%s} ---- ".format(self._surface))
 
         for orbital in orbitals.values():
             # pdos = self.get_pdos(self.vaspdos, atom_range=range(0, self.natom), orbital=orbital)  # all
@@ -220,16 +220,16 @@ class VaspDosPlus:
 
         return descriptors
 
-    def add_system_to_dict(self, dict=None):
+    def add_surface_to_dict(self, dict=None):
         """
-        Add system i.e. surface composition to the dict.
+        Add surface composition to the dict.
 
         Args:
             dict:
         Returns:
             dict:
         """
-        tmp = {"system": self._system}
+        tmp = {"surface": self._surface}
         dict.update(tmp)
         return dict
 
@@ -243,7 +243,7 @@ class VaspDosPlus:
             dict:
         """
         db = self.db
-        id = db.get(system=self._system).id
+        id = db.get(surface=self._surface).id
         row = db.get(id=id)
         eads = row.data.E_ads
         dict.update({"E_ads": eads})
@@ -259,7 +259,7 @@ class VaspDosPlus:
             dict:
         """
         db = self.db
-        id = db.get(system=self._system).id
+        id = db.get(surface=self._surface).id
         atoms = db.get_atoms(id=id)
         # a, b, c, alpha, beta, gamma = atoms.get_cell_lengths_and_angles()  # deprecated
         a, b, c, alpha, beta, gamma = atoms.cell.cellpar()
