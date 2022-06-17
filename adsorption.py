@@ -352,4 +352,3 @@ db_surf.write(surf, system=system, lattice=lattice, data={"E_ads[" + adsorbate +
 # remove working directory
 #
 shutil.rmtree(workdir)
-
