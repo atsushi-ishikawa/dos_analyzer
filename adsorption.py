@@ -16,9 +16,6 @@ import copy
 import numpy as np
 import argparse
 
-#calculator = "vasp"
-calculator = "emt"
-calculator = calculator.lower()
 
 # Whether to calculate formation energy of BULK ALLOY from its component metals.
 calc_formation_energy = True
@@ -35,20 +32,22 @@ parser.add_argument("--element2", default=None)
 parser.add_argument("--comp1", default=None)
 parser.add_argument("--adsorbate", default="CH3")
 parser.add_argument("--surf_json", default="surf_data.json")
+parser.add_argument("--calculator", default="emt")
 
 args = parser.parse_args()
-element1 = args.element1
-element2 = args.element2
-comp1 = args.comp1
-adsorbate = args.adsorbate
-surf_json = args.surf_json
+element1   = args.element1
+element2   = args.element2
+comp1      = args.comp1
+adsorbate  = args.adsorbate
+surf_json  = args.surf_json
+calculator = args.calculator.lower()
 
 if element2 is not None:
-    alloy = True
+    alloy   = True
     comp2   = 100 - comp1
     element = element1 + "{:.2f}".format(comp1/100.0) + element2 + "{:.2f}".format(comp2/100.0)
 else:
-    alloy = False
+    alloy   = False
     element = element1
 
 face = (1, 1, 1)
@@ -191,7 +190,6 @@ if alloy and calc_formation_energy:
         tmpbulk.set_calculator(calc_bulk_sp)
         ene = tmpbulk.get_potential_energy()
         ene /= len(tmpbulk)
-        #nat = surf.get_chemical_symbols().count(ielem)
         nat = bulk.get_chemical_symbols().count(ielem)
         e_bulk_component += ene * nat
 
@@ -256,7 +254,6 @@ surf.set_calculator(calc_sp)
 e_slab = surf.get_potential_energy()
 
 # surface energy
-#a, b, c, alpha, beta, gamma = surf.get_cell_lengths_and_angles()
 a, b, c, alpha, beta, gamma = surf.cell.cellpar()
 surf_area = a*b*math.sin(math.radians(gamma))
 e_surf = (e_slab - (len(surf)/len(bulk))*e_bulk) / (2.0*surf_area)
@@ -355,3 +352,4 @@ db_surf.write(surf, system=system, lattice=lattice, data={"E_ads[" + adsorbate +
 # remove working directory
 #
 shutil.rmtree(workdir)
+
