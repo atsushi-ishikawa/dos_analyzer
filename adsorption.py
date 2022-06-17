@@ -1,7 +1,3 @@
-#
-# usage: python [this_script] Pt (single metal)
-#        python [this_script] Pt Pd 50 (alloy)
-#
 from ase import Atoms, Atom
 from ase.calculators.vasp import Vasp
 from ase.calculators.emt import EMT
@@ -18,8 +14,11 @@ import shutil
 import math
 import copy
 import numpy as np
+import argparse
 
-calculator = "vasp"; calculator = calculator.lower()
+#calculator = "vasp"
+calculator = "emt"
+calculator = calculator.lower()
 
 # Whether to calculate formation energy of BULK ALLOY from its component metals.
 calc_formation_energy = True
@@ -30,23 +29,27 @@ lobster = "/lustre0/home/n22240/lobster/lobster-3.2.0/lobster-3.2.0"
 #
 # basic conditions
 #
-argvs     = sys.argv
-element1  = argvs[1]
+parser = argparse.ArgumentParser()
+parser.add_argument("--element1", default="Pt")
+parser.add_argument("--element2", default=None)
+parser.add_argument("--comp1", default=None)
+parser.add_argument("--adsorbate", default="CH3")
+parser.add_argument("--surf_json", default="surf_data.json")
 
-if len(argvs) == 5:
-    #
-    # in case of alloys
-    #
+args = parser.parse_args()
+element1 = args.element1
+element2 = args.element2
+comp1 = args.comp1
+adsorbate = args.adsorbate
+surf_json = args.surf_json
+
+if element2 is not None:
     alloy = True
-    element2  = argvs[2]
-    comp1     = int(argvs[3])
-    comp2     = 100 - comp1
-    element   = element1 + "{:.2f}".format(comp1/100.0) + element2 + "{:.2f}".format(comp2/100.0)
-    adsorbate = argvs[4]
+    comp2   = 100 - comp1
+    element = element1 + "{:.2f}".format(comp1/100.0) + element2 + "{:.2f}".format(comp2/100.0)
 else:
     alloy = False
-    element   = element1
-    adsorbate = argvs[2]
+    element = element1
 
 face = (1, 1, 1)
 face_str = ",".join(map(str, face)).replace(",", "")
@@ -128,15 +131,18 @@ if "vasp" in calculator:
 # directry things
 #
 cudir   = os.getcwd()
-workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)
-#workdir = os.path.join("/tmp/" + element + "_" + face_str + "_" + adsorbate) # whisky
+#workdir = os.path.join("/tmp/" + element + "_" + face_str + "_" + adsorbate)  # whisky
+workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)  # other
+
+clean = True
+if os.path.isdir(workdir) and clean:
+	shutil.rmtree(workdir)
 os.makedirs(workdir)
 os.chdir(workdir)
-shutil.copy("../vdw_kernel.bindat", ".")
+shutil.copy(os.environ["HOME"] + "/vasp/vasp.5.4.4/vdw_kernel.bindat", ".")
 #
 # database to save data
 #
-surf_json = "surf_data.json"
 surf_json = os.path.join(cudir, surf_json)
 db_surf   = connect(surf_json)
 #
@@ -155,7 +161,8 @@ if "vasp" in calculator:
     calc_bulk_sp = copy.deepcopy(calc_sp)
 elif "emt" in calculator:
     calc_opt = EMT()
-    calc_sp  = calc_opt
+    calc_sp  = EMT()
+    calc_bulk_sp = EMT()
 #
 # ------------------------ bulk ---------------------------
 #
@@ -166,11 +173,11 @@ else:
 
 ## lattice optimization
 lattice, a0 = lattice_info_guess(bulk)
-#
-optimize_lattice_constant(bulk, lattice=lattice, a0=a0, xc=xc,
-                          encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
-bulk.set_calculator(calc_bulk_sp)
+if "vasp" in calculator:
+    optimize_lattice_constant(bulk, lattice=lattice, a0=a0, xc=xc,
+                              encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
 
+bulk.set_calculator(calc_bulk_sp)
 e_bulk = bulk.get_potential_energy()
 
 e_form = 0.0
@@ -245,13 +252,16 @@ surf.set_calculator(calc_opt)
 surf.get_potential_energy()
 
 # single point
-nbands = calc_opt.read_number_of_electrons()//2 + len(surf)*4  # needed to increase nbands for COHP by lobster
-calc_sp.int_params["nbands"] = nbands  # replace the calculator
+if do_cohp:
+    nbands = calc_opt.read_number_of_electrons()//2 + len(surf)*4  # needed to increase nbands for COHP by lobster
+    calc_sp.int_params["nbands"] = nbands  # replace the calculator
+
 surf.set_calculator(calc_sp)
 e_slab = surf.get_potential_energy()
 
 # surface energy
-a, b, c, alpha, beta, gamma = surf.get_cell_lengths_and_angles()
+#a, b, c, alpha, beta, gamma = surf.get_cell_lengths_and_angles()
+a, b, c, alpha, beta, gamma = surf.cell.cellpar()
 surf_area = a*b*math.sin(math.radians(gamma))
 e_surf = (e_slab - (len(surf)/len(bulk))*e_bulk) / (2.0*surf_area)
 
@@ -279,7 +289,7 @@ if "vasp" in calculator:
 # ------------------------ adsorbate ------------------------
 #
 cell = [10.0, 10.0, 10.0]
-mol  = ase.Atoms(adsorbate, positions=ads_geom, cell=cell)
+mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
 
 if "vasp" in calculator:
     calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
@@ -349,3 +359,4 @@ db_surf.write(surf, system=system, lattice=lattice, data={"E_ads[" + adsorbate +
 # remove working directory
 #
 shutil.rmtree(workdir)
+
