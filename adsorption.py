@@ -79,9 +79,7 @@ repeat_bulk = 2
 # computational
 #
 if "vasp" in calculator:
-    #
     # INCAR keywords
-    #
     xc     = "pbe"
     ismear = 1
     sigma  = 0.1
@@ -100,9 +98,8 @@ if "vasp" in calculator:
     ibrion =  2
     nfree  =  20
     ispin_adsorbate = 2
-    #
+
     # single point
-    #
     xc_sp     = xc
     encut_sp  = encut
     ismear_sp = 1  # -5
@@ -112,9 +109,8 @@ if "vasp" in calculator:
 
     npar = 10  # 18 for ito
     nsim = 10
-    #
+
     # xc set
-    #
     xc = xc.lower()
     if xc == "pbe" or xc == "pbesol" or xc == "rpbe":
         pp = "pbe"
@@ -136,7 +132,7 @@ workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)  # oth
 
 clean = True
 if os.path.isdir(workdir) and clean:
-	shutil.rmtree(workdir)
+    shutil.rmtree(workdir)
 os.makedirs(workdir)
 os.chdir(workdir)
 shutil.copy(os.environ["HOME"] + "/vasp/vasp.5.4.4/vdw_kernel.bindat", ".")
@@ -359,4 +355,3 @@ db_surf.write(surf, system=system, lattice=lattice, data={"E_ads[" + adsorbate +
 # remove working directory
 #
 shutil.rmtree(workdir)
-
