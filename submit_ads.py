@@ -55,12 +55,14 @@ if alloy:
                 os.system(command)
 
 # do pure metal if the loop is first_time
+adsorbates = ["CO", "CH3"]
+
 if first_time:
-    ads = "CH3"
     for i in range(0, len(dict)):
         elm = dict[str(i)]["element"]
-        if env == "ito":
-            command = "pjsub -x \"INP1={0}\" \"INP2={1}\" run_ito.sh".format(elm, ads)
-        elif env == "hokudai":
-            command = "pjsub -x \"INP1={0}\" \"INP2={1}\" run_grand.sh".format(elm, ads)
-        os.system(command)
+        for adsorbate in adsorbates:
+            if env == "ito":
+                command = "pjsub -x \"INP1={0}\" \"INP2={1}\" run_ito.sh".format(elm, adsorbate)
+            elif env == "grand":
+                command = "pjsub -x \"INP1={0}\" \"INP2={1}\" run_grand.sh".format(elm, adsorbate)
+            os.system(command)

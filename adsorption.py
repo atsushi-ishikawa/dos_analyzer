@@ -16,7 +16,6 @@ import copy
 import numpy as np
 import argparse
 
-
 # Whether to calculate formation energy of BULK ALLOY from its component metals.
 calc_formation_energy = True
 do_cohp = False
@@ -55,10 +54,6 @@ face_str = ",".join(map(str, face)).replace(",", "")
 
 position_str = "atop"  # atop, hcp, fcc
 
-#adsorbate = "O"
-#adsorbate = "CO"
-#adsorbate = "CH3"
-
 if adsorbate == "CO":
     ads_height = 1.6
     ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
@@ -79,24 +74,25 @@ repeat_bulk = 2
 #
 if "vasp" in calculator:
     # INCAR keywords
-    xc     = "pbe"
-    ismear = 1
-    sigma  = 0.1
+    xc     =  "pbe"
+    ismear =  1
+    sigma  =  0.1
     prec   = "normal"
-    encut  =  400
+    encut  =  450
     nelmin =  5
-    nelm   =  100
+    nelm   =  30
     potim  =  0.10
-    nsw    =  200
+    nsw    =  5  # 200
     ediff  =  1.0e-5
     ediffg = -0.05
-    kpts   =  [2, 2, 1]
+    kpts   =  [1, 1, 1]
     gamma  =  True
     isym   =  -1
     ispin  =  1  # NOTICE: "analyze.dos" is not yet adjusted to ispin=2
     ibrion =  2
     nfree  =  20
     ispin_adsorbate = 2
+    lreal  =  True
 
     # single point
     xc_sp     = xc
@@ -104,7 +100,7 @@ if "vasp" in calculator:
     ismear_sp = 1  # -5
     sigma_sp  = 0.1
     gamma_sp  = True
-    kpts_sp   = [4, 4, 1]
+    kpts_sp   = [1, 1, 1]  # [4, 4, 1]
 
     npar = 10  # 18 for ito
     nsim = 10
@@ -147,11 +143,11 @@ if "vasp" in calculator:
     calc_opt = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin, algo="VeryFast",
                     encut=encut, ismear=ismear, sigma=sigma, istart=0, nelm=nelm, nelmin=nelmin,
                     isym=isym, ibrion=ibrion, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-                    kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
+                    kpts=kpts, gamma=gamma, npar=npar, nsim=nsim, lreal=lreal, nfree=nfree)
     calc_sp  = Vasp(prec=prec, xc=xc_sp, pp=pp, ispin=ispin, algo="VeryFast",
                     encut=encut_sp, ismear=ismear_sp, sigma=sigma_sp, istart=0, nelm=nelm, nelmin=nelmin,
                     isym=isym, ibrion=-1, nsw=0, potim=0, ediff=ediff, ediffg=ediffg,
-                    kpts=kpts_sp, gamma=gamma_sp, npar=npar, nsim=nsim, lreal=True, lorbit=10)
+                    kpts=kpts_sp, gamma=gamma_sp, npar=npar, nsim=nsim, lreal=lreal, lorbit=10)
     kpts_bulk_sp = [max(kpts_sp) for i in range(3)]
     calc_bulk_sp = copy.deepcopy(calc_sp)
 elif "emt" in calculator:
@@ -169,10 +165,11 @@ else:
 ## lattice optimization
 lattice, a0 = lattice_info_guess(bulk)
 if "vasp" in calculator:
-    optimize_lattice_constant(bulk, lattice=lattice, a0=a0, xc=xc,
-                              encut=encut, ediff=ediff, ediffg=ediff*0.1, npar=npar, nsim=nsim)
+    optimize_lattice_constant(bulk, lattice=lattice, a0=a0, xc=xc, encut=encut,
+	                          ediff=ediff, ediffg=ediff*0.1, nsw=nsw, npar=npar, nsim=nsim)
 
 bulk.set_calculator(calc_bulk_sp)
+print("calculating bulk --- lattice optimization", flush=True)
 e_bulk = bulk.get_potential_energy()
 
 e_form = 0.0
@@ -181,8 +178,8 @@ if alloy and calc_formation_energy:
     e_bulk_component = 0.0
     for ielem in [element1, element2]:
         tmpbulk = make_bulk(ielem, repeat=2)
-        optimize_lattice_constant(tmpbulk, lattice=lattice, a0=a0, xc=xc,
-                                  encut=encut, ediff=ediff, ediffg=ediff, npar=npar, nsim=nsim)
+        optimize_lattice_constant(tmpbulk, lattice=lattice, a0=a0, xc=xc, encut=encut,
+                                  ediff=ediff, ediffg=ediff*0.1, nsw=nsw, npar=npar, nsim=nsim)
         #
         # bulk energy for formation energy --- same with alloy surface calculator
         #
@@ -202,7 +199,7 @@ if alloy and calc_formation_energy:
 #
 # surface construction
 #
-surf = surface(bulk, face, nlayer, vacuum=vacuum)
+surf = surface(bulk, face, nlayer, vacuum=vacuum, periodic=True)
 surf.translate([0, 0, -vacuum])
 
 surf = sort_atoms_by_z(surf)
@@ -242,10 +239,12 @@ surf.set_constraint(c)
 # ==================================================
 #
 # optimization
+print("calculating surface --- optimization", flush=True)
 surf.set_calculator(calc_opt)
 surf.get_potential_energy()
 
 # single point
+print("calculating surface --- single point", flush=True)
 if do_cohp:
     nbands = calc_opt.read_number_of_electrons()//2 + len(surf)*4  # needed to increase nbands for COHP by lobster
     calc_sp.int_params["nbands"] = nbands  # replace the calculator
@@ -282,17 +281,18 @@ if "vasp" in calculator:
 # ------------------------ adsorbate ------------------------
 #
 cell = [10.0, 10.0, 10.0]
-mol  = Atoms(adsorbate, positions=ads_geom, cell=cell)
+mol  = Atoms(adsorbate, positions=ads_geom, cell=cell, pbc=True)
 
 if "vasp" in calculator:
     calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
                      encut=encut_sp, ismear=0, sigma=0.05, istart=0, nelm=nelm, nelmin=nelmin,
                      isym=isym, ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-                     kpts=[1, 1, 1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
+                     kpts=[1, 1, 1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree, lorbit=10)
 elif "emt" in calculator:
     calc_mol = EMT()
 
 mol.set_calculator(calc_mol)
+print("calculating adsorbate --- {:s}".format(adsorbate), flush=True)
 e_mol = mol.get_potential_energy()
 
 # copy DOSCAR of adsorbate, if not exists
@@ -327,11 +327,13 @@ add_adsorbate(surf, mol, ads_height, position=position, offset=offset)
 #
 # optimization
 #
+print("calculating surface + adsorbate --- optimization", flush=True)
 surf.set_calculator(calc_opt)
 surf.get_potential_energy()
 #
 # single point
 #
+print("calculating surface + adsorbate --- single point", flush=True)
 surf.set_calculator(calc_sp)
 e_tot = surf.get_potential_energy()
 e_ads = e_tot - (e_slab + e_mol)
@@ -348,6 +350,7 @@ if "vasp" in calculator:
 system = element + "_" + face_str
 db_surf.write(surf, system=system, lattice=lattice, data={"E_ads[" + adsorbate + "]": e_ads,
                                                           "E_form": e_form, "E_surf": e_surf})
+print("done: E_ads = {:6.3f}".format(e_ads), flush=True)
 #
 # remove working directory
 #
