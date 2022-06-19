@@ -355,7 +355,7 @@ if "vasp" in calculator:
 #
 # write to surf
 #
-surface = element + "_" + face_str
-db_surf.write(surf, surface=surface, lattice=lattice, data={"E_ads[" + adsorbate + "]": e_ads,
-                                                          "E_form": e_form, "E_surf": e_surf})
+system = element + "_" + face_str + "_" + adsorbate
+db_surf.write(surf, system=system, lattice=lattice, data={"E_ads": e_ads, "E_form": e_form, "E_surf": e_surf})
+                                                          
 print("done: E_ads = {:6.3f}".format(e_ads), flush=True)
