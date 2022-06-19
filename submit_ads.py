@@ -1,28 +1,26 @@
 import os
 import sys
 
-# pure metals
-# note: no need to do separate calculation for pure metals when making alloy-including database,
-#       just set "first_time=True" flag in alloy part
+# no need to do separate calculation for pure metals when making alloy-including database,
 
-alloy = True
+add_pure_metals = True  # set true for the first time
+alloy = False
 env = "grand"  # "ito" or "grand"
 
 dict = {
   "0":  {"element": "Rh", "lattice": "fcc"},
   "1":  {"element": "Pd", "lattice": "fcc"},
-  "2":  {"element": "Ir", "lattice": "fcc"},
-  "3":  {"element": "Pt", "lattice": "fcc"},
-  "4":  {"element": "Cu", "lattice": "fcc"},
-  "5":  {"element": "Ag", "lattice": "fcc"},
-  "6":  {"element": "Au", "lattice": "fcc"},
-  "7":  {"element": "Ru", "lattice": "fcc"},
-  "8":  {"element": "Os", "lattice": "fcc"},
-  "9":  {"element": "Cd", "lattice": "fcc"},
-  "10": {"element": "Hg", "lattice": "fcc"}
+# "2":  {"element": "Ir", "lattice": "fcc"},
+# "3":  {"element": "Pt", "lattice": "fcc"},
+# "4":  {"element": "Cu", "lattice": "fcc"},
+# "5":  {"element": "Ag", "lattice": "fcc"},
+# "6":  {"element": "Au", "lattice": "fcc"},
+# "7":  {"element": "Ru", "lattice": "fcc"},
+# "8":  {"element": "Os", "lattice": "fcc"},
+# "9":  {"element": "Cd", "lattice": "fcc"},
+# "10": {"element": "Hg", "lattice": "fcc"}
   }
 
-first_time = True
 if alloy:
     for i in range(0, len(dict)):
         elm1 = dict[str(i)]["element"]
@@ -57,12 +55,12 @@ if alloy:
 # do pure metal if the loop is first_time
 adsorbates = ["CO", "CH3"]
 
-if first_time:
+if add_pure_metals:
     for i in range(0, len(dict)):
         elm = dict[str(i)]["element"]
         for adsorbate in adsorbates:
             if env == "ito":
-                command = "pjsub -x \"INP1={0}\" \"INP2={1}\" run_ito.sh".format(elm, adsorbate)
+                command = "pjsub run_ito.sh   -x \"INP1={0}\" \"INP2={1}\"".format(elm, adsorbate)
             elif env == "grand":
-                command = "pjsub -x \"INP1={0}\" \"INP2={1}\" run_grand.sh".format(elm, adsorbate)
+                command = "pjsub run_grand.sh -x INP1={0} -x INP2={1}".format(elm, adsorbate)
             os.system(command)

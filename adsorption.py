@@ -16,15 +16,6 @@ import copy
 import numpy as np
 import argparse
 
-# Whether to calculate formation energy of BULK ALLOY from its component metals.
-calc_formation_energy = True
-do_cohp = False
-lobster = "/lustre0/home/n22240/lobster/lobster-3.2.0/lobster-3.2.0"
-#
-# --- Determine lattice constant ---
-#
-# basic conditions
-#
 parser = argparse.ArgumentParser()
 parser.add_argument("--element1", default="Pt")
 parser.add_argument("--element2", default=None)
@@ -40,6 +31,11 @@ comp1      = args.comp1
 adsorbate  = args.adsorbate
 surf_json  = args.surf_json
 calculator = args.calculator.lower()
+
+optimize_lattice = True
+calc_formation_energy = True  # alculate formation energy of BULK ALLOY from its component metals
+do_cohp = False
+lobster = "/lustre0/home/n22240/lobster/lobster-3.2.0/lobster-3.2.0"
 
 if element2 is not None:
     alloy   = True
@@ -59,14 +55,14 @@ if adsorbate == "CO":
     ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
 elif adsorbate == "CH3":
     ads_height = 2.2
-    ads_geom  = [(1, 1, 0), (0.4, 1, 0), (1.6, 1, 0), (1, 1.6, 0)]
+    ads_geom  = [(1, 1, 0), (0.3, 0.6, 0), (1.7, 0.6, 0), (1, 1.8, 0)]
 else:
     # atom
     ads_height = 1.8
     ads_geom  = [(0, 0, 0)]
 
 vacuum = 10.0
-nlayer = 3
+nlayer = 2  # 3
 nrelax = 2
 repeat_bulk = 2
 #
@@ -80,7 +76,7 @@ if "vasp" in calculator:
     prec   = "normal"
     encut  =  450
     nelmin =  5
-    nelm   =  30
+    nelm   =  40
     potim  =  0.10
     nsw    =  5  # 200
     ediff  =  1.0e-5
@@ -91,7 +87,7 @@ if "vasp" in calculator:
     ispin  =  1  # NOTICE: "analyze.dos" is not yet adjusted to ispin=2
     ibrion =  2
     nfree  =  20
-    ispin_adsorbate = 2
+    ispin_adsorbate = 1
     lreal  =  True
 
     # single point
@@ -128,6 +124,7 @@ workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)  # oth
 clean = True
 if os.path.isdir(workdir) and clean:
     shutil.rmtree(workdir)
+
 os.makedirs(workdir)
 os.chdir(workdir)
 shutil.copy(os.environ["HOME"] + "/vasp/vasp.5.4.4/vdw_kernel.bindat", ".")
@@ -164,13 +161,15 @@ else:
 
 ## lattice optimization
 lattice, a0 = lattice_info_guess(bulk)
-if "vasp" in calculator:
-    optimize_lattice_constant(bulk, lattice=lattice, a0=a0, xc=xc, encut=encut,
-	                          ediff=ediff, ediffg=ediff*0.1, nsw=nsw, npar=npar, nsim=nsim)
+if "vasp" in calculator and optimize_lattice:
+    print("calculating bulk --- lattice optimization", flush=True)
+    bulk_opt = optimize_lattice_constant(bulk, lattice=lattice, a0=a0, xc=xc, encut=encut, isif=6,
+                                         ediff=ediff, ediffg=ediff*0.1, nsw=nsw, npar=npar, nsim=nsim)
+else:
+    bulk_opt = bulk
 
-bulk.set_calculator(calc_bulk_sp)
-print("calculating bulk --- lattice optimization", flush=True)
-e_bulk = bulk.get_potential_energy()
+bulk_opt.set_calculator(calc_bulk_sp)
+e_bulk = bulk_opt.get_potential_energy()
 
 e_form = 0.0
 if alloy and calc_formation_energy:
@@ -178,16 +177,16 @@ if alloy and calc_formation_energy:
     e_bulk_component = 0.0
     for ielem in [element1, element2]:
         tmpbulk = make_bulk(ielem, repeat=2)
-        optimize_lattice_constant(tmpbulk, lattice=lattice, a0=a0, xc=xc, encut=encut,
-                                  ediff=ediff, ediffg=ediff*0.1, nsw=nsw, npar=npar, nsim=nsim)
-        #
+        bulk_opt = optimize_lattice_constant(tmpbulk, lattice=lattice, a0=a0, xc=xc, encut=encut,
+                                             ediff=ediff, ediffg=ediff*0.1, nsw=nsw, npar=npar, nsim=nsim)
+
         # bulk energy for formation energy --- same with alloy surface calculator
-        #
+
         # single point
-        tmpbulk.set_calculator(calc_bulk_sp)
-        ene = tmpbulk.get_potential_energy()
-        ene /= len(tmpbulk)
-        nat = bulk.get_chemical_symbols().count(ielem)
+        bulk_optset_calculator(calc_bulk_sp)
+        ene = bulk_opt.get_potential_energy()
+        ene /= len(bulk_opt)
+        nat = bulk_opt.get_chemical_symbols().count(ielem)
         e_bulk_component += ene * nat
 
     # formation energy of bulk alloy from its component
@@ -199,7 +198,7 @@ if alloy and calc_formation_energy:
 #
 # surface construction
 #
-surf = surface(bulk, face, nlayer, vacuum=vacuum, periodic=True)
+surf = surface(bulk_opt, face, nlayer, vacuum=vacuum, periodic=True)
 surf.translate([0, 0, -vacuum])
 
 surf = sort_atoms_by_z(surf)
@@ -258,19 +257,15 @@ surf_area = a*b*math.sin(math.radians(gamma))
 e_surf = (e_slab - (len(surf)/len(bulk))*e_bulk) / (2.0*surf_area)
 
 if "vasp" in calculator:
-    #
-    # copy DOSCAR
-    #
+    # copy DOSCAR of surface to currentdir
     dosfile = "DOSCAR_" + element + "_" + face_str
     dosfile = os.path.join(cudir, dosfile)
     os.system("cp DOSCAR %s" % dosfile)
-    #
+
     # printout Efermi
-    #
     efermi = calc_sp.read_fermi()
-    #
+
     # do lobster and copy COHP file
-    #
     if do_cohp:
         make_lobsterin()
         os.system("env OMP_NUM_THREADS=%d %s" % (npar, lobster))
@@ -284,18 +279,31 @@ cell = [10.0, 10.0, 10.0]
 mol  = Atoms(adsorbate, positions=ads_geom, cell=cell, pbc=True)
 
 if "vasp" in calculator:
-    calc_mol  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
-                     encut=encut_sp, ismear=0, sigma=0.05, istart=0, nelm=nelm, nelmin=nelmin,
-                     isym=isym, ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-                     kpts=[1, 1, 1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree, lorbit=10)
+    calc_mol_opt  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
+                         encut=encut_sp, ismear=0, sigma=0.05, istart=0, nelm=nelm, nelmin=nelmin,
+                         isym=isym, ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
+                         kpts=[1, 1, 1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
+    calc_mol_sp   = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
+                         encut=encut_sp, ismear=0, sigma=0.05, istart=0, nelm=nelm, nelmin=nelmin,
+                         isym=isym, ibrion=-1, nsw=0, potim=potim, ediff=ediff, ediffg=ediffg,
+                         kpts=[1, 1, 1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree, lorbit=10)
 elif "emt" in calculator:
-    calc_mol = EMT()
+    calc_mol_opt = EMT()
+    calc_mol_sp  = EMT()
 
-mol.set_calculator(calc_mol)
 print("calculating adsorbate --- {:s}".format(adsorbate), flush=True)
+
+# opt
+mol.set_calculator(calc_mol_opt)
+mol.get_potential_energy()
+
+# single point
+mol.set_calculator(calc_mol_sp)
+mol.get_potential_energy()
+
 e_mol = mol.get_potential_energy()
 
-# copy DOSCAR of adsorbate, if not exists
+# copy DOSCAR of adsorbate
 dosfile = "DOSCAR_" + adsorbate
 dosfile = os.path.join(cudir, dosfile)
 if not os.path.exists(dosfile):
@@ -341,17 +349,13 @@ e_ads = e_tot - (e_slab + e_mol)
 # copy vasprun.xml
 #
 if "vasp" in calculator:
-    xmlfile  = "vasprun_" + element + "_" + face_str + ".xml"
+    xmlfile  = "vasprun_" + element + "_" + face_str + "_" + adsorbate + ".xml"
     xmlfile  = os.path.join(cudir, xmlfile)
     os.system("cp vasprun.xml %s" % xmlfile)
 #
 # write to surf
 #
-system = element + "_" + face_str
-db_surf.write(surf, system=system, lattice=lattice, data={"E_ads[" + adsorbate + "]": e_ads,
+surface = element + "_" + face_str
+db_surf.write(surf, surface=surface, lattice=lattice, data={"E_ads[" + adsorbate + "]": e_ads,
                                                           "E_form": e_form, "E_surf": e_surf})
 print("done: E_ads = {:6.3f}".format(e_ads), flush=True)
-#
-# remove working directory
-#
-shutil.rmtree(workdir)

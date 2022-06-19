@@ -21,8 +21,9 @@ rm stdout* stderr*
 
 # INP variables are given by submit_ads.py: INP1 = element1, INP2 = adsorbate
 
-#python adsorption.py ${INP} 1> std_${INP}_ads.out 2> err_${INP}_ads.out # pure metal
 #python adsorption.py ${INP1} ${INP2} ${INP3} 1> std_${INP1}_${INP2}_${INP3}_ads.out 2> err_${INP1}_${INP2}_${INP3}_ads.out # alloy
 #python adsorption.py ${INP1} ${INP2} ${INP3} 1> std_${INP1}_${INP2}_${INP3}_ads.out 2> err_${INP1}_${INP2}_${INP3}_ads.out # alloy
-python adsorption.py --element1=${INP1} --adsorbate=${INP2} --calculator="vasp" 1> stdout 2> stderr
+#python adsorption.py --calculator="vasp" 1> stdout 2> stderr
+#python adsorption.py --element1=${INP1} --adsorbate=${INP2} --calculator="vasp" 1> stdout 2> stderr
+python adsorption.py --element1=${INP1} --adsorbate=${INP2} --calculator="vasp" 1> std_${INP1}_${INP2}.out 2> err_${INP1}_${INP2}.out
 
