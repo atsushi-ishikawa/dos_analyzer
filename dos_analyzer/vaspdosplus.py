@@ -81,7 +81,7 @@ class VaspDosPlus:
         Returns:
             descriptors (dict)
         """
-        check = True
+        check = False
 
         self.set_database()
 
