@@ -3,17 +3,14 @@ from ase.calculators.vasp import VaspDos
 import sys
 import numpy as np
 import math
-#from vasptools import *
 import matplotlib.pylab as plt
-
-orbitals = {"s": 0, "p": 1, "d": 2}
 
 class VaspDosPlus:
     def __init__(self, doscar=None):
         self.doscar = doscar
 
         self._surf_jsonfile = None
-        self._surface = None
+        self._system = None
         self._numpeaks = None
 
         self.db = None
@@ -35,13 +32,14 @@ class VaspDosPlus:
             self.natom = int(line1.split()[0])
 
         self.normalize_height = True    # True is maybe better
-        self.relative_to_fermi = False  # False is better
+        self.relative_to_fermi = False
         self.do_hilbert = False
         self.do_cohp = False
         self.geometry_information = False
 
         #self.sigma = [20, 40, 70]  # smearing width ... 30-60
-        self.sigma = [20, 40, 80]  # smearing width ... 30-60
+        #self.sigma = [20, 40, 80]  # smearing width ... 30-60
+        self.sigma = [10, 10, 10]
 
         if self.relative_to_fermi:
             self.energy -= self.efermi
@@ -55,12 +53,12 @@ class VaspDosPlus:
         self._numpeaks = number_of_peaks
 
     @property
-    def surface(self):
-        return self._surface
+    def system(self):
+        return self._system
 
-    @surface.setter
-    def surface(self, surfacename=None):
-        self._surface = surfacename
+    @system.setter
+    def system(self, systemname=None):
+        self._system = systemname
 
     @property
     def surf_jsonfile(self):
@@ -75,7 +73,7 @@ class VaspDosPlus:
         json = self._surf_jsonfile
         self.db = connect(json)
 
-    def get_descriptors(self):
+    def get_descriptors(self, adsorbate=False):
         """
         Get descriptors. Descriptors are peak positions, widths, and heights of s, p, and d-bands.
         The number of peaks should be specified by VaspDosPlus.numpeaks.
@@ -83,22 +81,29 @@ class VaspDosPlus:
         Returns:
             descriptors (dict)
         """
-        check = False
+        check = True
 
         self.set_database()
 
         descriptors = {}
-        descriptors = self.add_surface_to_dict(dict=descriptors)
-        descriptors = self.add_adsorption_energy_to_dict(dict=descriptors)
+        descriptors = self.add_system_to_dict(dict=descriptors)
+        if not adsorbate:
+            descriptors = self.add_adsorption_energy_to_dict(dict=descriptors)
 
         if self.do_cohp:
-            cohpcar = self._surface + "COHPCAR"
+            cohpcar = self._system + "COHPCAR"
 
-        print(" ----- surface - {0:%s} ---- ".format(self._surface))
+        print(" ----- system - {0:s} ---- ".format(self._system))
+
+        if adsorbate:
+            atom_range = range(0, self.natom)
+            orbitals = {"s": 0, "p": 1}
+        else:
+            atom_range = range(48, 64)
+            orbitals = {"s": 0, "p": 1, "d": 2}
 
         for orbital in orbitals.values():
-            # pdos = self.get_pdos(self.vaspdos, atom_range=range(0, self.natom), orbital=orbital)  # all
-            pdos = self.get_pdos(self.vaspdos, atom_range=range(48, 64), orbital=orbital)  # surface
+            pdos = self.get_pdos(self.vaspdos, atom_range=atom_range, orbital=orbital)
 
             # smear the dos
             pdos = self.smear_dos(pdos, sigma=self.sigma[orbital])
@@ -117,7 +122,7 @@ class VaspDosPlus:
             try:
                 orb_name = self.from_012_to_spd(orbital)
                 params, rss, r2 = gaussian_fit(np.array(self.energy), pdos, params)
-                peaks = sort_peaks(params, key="height")
+                peaks = sort_peaks(params, key="position")
                 print(
                     "found {0:>2d} peaks -- {1:s} orbital R^2 = {2:>5.3f}".format(len(peaks), orb_name, r2))
             except:
@@ -172,7 +177,7 @@ class VaspDosPlus:
 
             # if you want to check by eye
             if check:
-                self.plot_dos()
+                self.plot_dos(pdos, params=params, position_occ=position_occ)
 
             # write to database
             orb_name = self.from_012_to_spd(orbital)
@@ -220,7 +225,7 @@ class VaspDosPlus:
 
         return descriptors
 
-    def add_surface_to_dict(self, dict=None):
+    def add_system_to_dict(self, dict=None):
         """
         Add surface composition to the dict.
 
@@ -229,7 +234,7 @@ class VaspDosPlus:
         Returns:
             dict:
         """
-        tmp = {"surface": self._surface}
+        tmp = {"system": self._system}
         dict.update(tmp)
         return dict
 
@@ -242,9 +247,9 @@ class VaspDosPlus:
         Returns:
             dict:
         """
-        db = self.db
-        id = db.get(surface=self._surface).id
-        row = db.get(id=id)
+        db   = self.db
+        id   = db.get(system=self._system).id
+        row  = db.get(id=id)
         eads = row.data.E_ads
         dict.update({"E_ads": eads})
         return dict
@@ -259,7 +264,7 @@ class VaspDosPlus:
             dict:
         """
         db = self.db
-        id = db.get(surface=self._surface).id
+        id = db.get(system=self._system).id
         atoms = db.get_atoms(id=id)
         # a, b, c, alpha, beta, gamma = atoms.get_cell_lengths_and_angles()  # deprecated
         a, b, c, alpha, beta, gamma = atoms.cell.cellpar()
@@ -300,12 +305,14 @@ class VaspDosPlus:
 
         return cohp_pos_peak, cohp_pos_center, cohp_neg_peak, cohp_neg_center
 
-    def plot_dos(self, dos):
+    def plot_dos(self, dos, params=None, position_occ=None):
         """
         Plot the density of state.
 
         Args:
             dos: density of state (numpy array)
+            params:
+            position_occ:
         """
         import seaborn as sb
         from scipy import fftpack
@@ -451,10 +458,10 @@ class VaspDosPlus:
         Args:
             val:
         Returns:
-            s or p or d (string)j
+            s or p or d (string)
         """
-        d = orbitals
-        keys = [k for k, v in d.items() if v == val]
+        spd = {"s": 0, "p": 1, "d": 2}
+        keys = [k for k, v in spd.items() if v == val]
         if keys:
             return keys[0]
 
@@ -526,24 +533,6 @@ def gaussian_fit(x, y, guess):
     """
     from scipy.optimize import curve_fit
 
-    def fit_func(x, *params):
-        """
-
-        Args:
-            x:
-            *params:
-
-        Returns:
-
-        """
-        y = np.zeros_like(x)
-        for i in range(0, len(params), 3):
-            ctr = params[i]  # position
-            amp = params[i + 1]  # height
-            wid = params[i + 2]  # width (smaller is sharper)
-            y = y + amp * np.exp(-((x - ctr) / wid) ** 2)
-        return y
-
     # method: trf ... Trust region reflective method. Generally robust (default).
     #         lm  ... Levenberg-Marquardt. Most efficient for small sparse problem.
     # ftol, xtol, gtol: default is 1.0e-8. Used 1.0e-6 to reduced the drop-off DOSs.
@@ -560,6 +549,21 @@ def gaussian_fit(x, y, guess):
 
     return popt, rss, r2
 
+def fit_func(x, *params):
+    """
+
+    Args:
+        x:
+        *params:
+    Returns:
+    """
+    y = np.zeros_like(x)
+    for i in range(0, len(params), 3):
+        ctr = params[i]  # position
+        amp = params[i + 1]  # height
+        wid = params[i + 2]  # width (smaller is sharper)
+        y = y + amp * np.exp(-((x - ctr) / wid) ** 2)
+    return y
 
 def sort_peaks(peaks, key="height"):
     """
@@ -568,7 +572,7 @@ def sort_peaks(peaks, key="height"):
 
     Args:
         peaks:
-        key:
+        key: height or position
     Returns:
 
     """

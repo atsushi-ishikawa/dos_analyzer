@@ -15,31 +15,35 @@ numpeaks = args.numpeaks
 os.system("rm {}".format(surf_json))
 db = TinyDB(surf_json)
 
-doscardir = "doscars"
-doscars = glob.glob(doscardir + "/" + "DOSCAR*")  # surface
+doscardir = "."
+doscars = glob.glob(doscardir + "/" + "DOSCAR*")
+
+surface_doscars = []
+for idos in doscars:
+    if idos.count("_") == 2:
+        surface_doscars.append(idos)
 
 # adsorbate
-adsorbate = "CH3"
+adsorbates = ["CO", "CH3"]
 
 data = {}
-dos = VaspDosPlus(doscar=idoscar)
-dos.ads_json = adsorbate + "_x.json"
-dos.system = system
-dos.numpeaks = 1  # only one peak in adsorbate
-descriptor = dos.get_descriptors()
-data.update(descriptor)
-db.insert(data)
+for adsorbate in adsorbates:
+    dos = VaspDosPlus(doscar="DOSCAR" + "_" + adsorbate)
+    dos.ads_json = adsorbate + "_x.json"
+    dos.system = adsorbate
+    dos.numpeaks = 1  # only one peak in adsorbate
+    descriptor = dos.get_descriptors(adsorbate=True)
+    data.update(descriptor)
+    db.insert(data)
 
-# surface
-for idoscar in doscars:
+for idoscar in surface_doscars:
     surface = idoscar.split("_")[1] + "_" + idoscar.split("_")[2]
     data = {}
 
     dos = VaspDosPlus(doscar=idoscar)
     dos.surf_jsonfile = "surf_data.json"
-    dos.surface = surface
+    dos.system = surface + "_" + adsorbate
     dos.numpeaks = numpeaks
-
     descriptor = dos.get_descriptors()
 
     data.update(descriptor)
