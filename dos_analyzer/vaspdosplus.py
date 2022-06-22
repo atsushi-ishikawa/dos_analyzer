@@ -78,6 +78,8 @@ class VaspDosPlus:
         Get descriptors. Descriptors are peak positions, widths, and heights of s, p, and d-bands.
         The number of peaks should be specified by VaspDosPlus.numpeaks.
 
+        Args:
+            adsorbate: whether adsorbate or not
         Returns:
             descriptors (dict)
         """
@@ -87,8 +89,8 @@ class VaspDosPlus:
 
         descriptors = {}
         descriptors = self.add_system_to_dict(dict=descriptors)
-        if not adsorbate:
-            descriptors = self.add_adsorption_energy_to_dict(dict=descriptors)
+        #if not adsorbate:
+        #    descriptors = self.add_adsorption_energy_to_dict(dict=descriptors)
 
         if self.do_cohp:
             cohpcar = self._system + "COHPCAR"
@@ -519,7 +521,6 @@ def get_efermi_from_doscar(DOSCAR):
     efermi = float(line[3])
     return efermi
 
-
 def gaussian_fit(x, y, guess):
     """
 
@@ -556,6 +557,7 @@ def fit_func(x, *params):
         x:
         *params:
     Returns:
+
     """
     y = np.zeros_like(x)
     for i in range(0, len(params), 3):

@@ -42,15 +42,15 @@ def make_dataframe_from_json(jsonfile=None):
     df = json.load(open(jsonfile, "r"))
     df = pd.DataFrame(df["_default"])
     df = df.T
-    df = df.set_index("surface")
+    df = df.set_index("system")
     df = pd.DataFrame(df, dtype=float)
     return df
 
 
 def make_dataframe_form_csv(csvfile=None):
     df = pd.read_csv(csvfile)
-    if "surface" in df.columns:
-        df = df.drop("surface", axis=1)
+    if "system" in df.columns:
+        df = df.drop("system", axis=1)
     if "Unnamed: 0" in df.columns:
         df = df.drop("Unnamed: 0", axis=1)
     return df
@@ -228,13 +228,18 @@ os.makedirs(outdir, exist_ok=True)
 os.system("rm {}/*".format(outdir))
 
 # setup dataframe
-df_surf = make_dataframe_from_json(jsonfile="surf_xy.json")
-X_surf = df_surf.drop("E_ads", axis=1)
+df_surf = make_dataframe_from_json(jsonfile="surf_x.json")
 
 # adsorbate
 adsorbate = "CH3"
-df_ads = make_dataframe_form_json(jsonfile=adsorbate + "_x" + ".json")
+df_ads = make_dataframe_from_json(jsonfile=adsorbate + "_x" + ".json")
 X_ads  = df_ads
+
+# adsorption energy
+df_Eads = make_dataframe_from_json(jsonfile="Eads.json")
+Y_ads   = df_Eads
+print(Y_ads)
+quit()
 
 # concat
 X = pd.concat(X_surf, X_ads, axis=1)

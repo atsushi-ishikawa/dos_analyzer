@@ -4,8 +4,20 @@ import glob
 import argparse
 from tinydb import TinyDB
 
+def get_adsorption_energy(json=None, surface=None, adsorbate=None):
+    from ase.db import connect
+    db = connect(json)
+    data = {}
+    system = surface + "_" + adsorbate
+    data.update({"system": system})
+    id   = db.get(system=system).id
+    row  = db.get(id=id)
+    eads = row.data.E_ads
+    data.update({"E_ads": eads})
+    return data
+
 parser = argparse.ArgumentParser()
-parser.add_argument("--surf_json", default="surf_xy.json", help="name of the output json file for surface descriptors")
+parser.add_argument("--surf_json", default="surf_x.json", help="name of the output json file for surface descriptors")
 parser.add_argument("--numpeaks",  default=1, type=int, help="number of peaks in surface dos")
 args = parser.parse_args()
 
@@ -45,9 +57,20 @@ for idoscar in surface_doscars:
 
     dos = VaspDosPlus(doscar=idoscar)
     dos.surf_jsonfile = "surf_data.json"
-    dos.system = surface + "_" + adsorbate
+    dos.system = surface
     dos.numpeaks = numpeaks
     descriptor = dos.get_descriptors()
 
     data.update(descriptor)
     db_surf.insert(data)
+
+Eads_json = "Eads.json"
+os.system("rm {}".format(Eads_json))
+db_Eads = TinyDB(Eads_json)
+
+for idoscar in surface_doscars:
+    for adsorbate in adsorbates:
+        surface = idoscar.split("_")[1] + "_" + idoscar.split("_")[2]
+        system = surface + "_" + adsorbate
+        data = get_adsorption_energy(json="surf_data.json", surface=surface, adsorbate=adsorbate)
+        db_Eads.insert(data)
