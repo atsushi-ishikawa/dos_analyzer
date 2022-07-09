@@ -21,8 +21,8 @@ plt.rcParams["legend.frameon"] = False
 plt.rcParams["legend.framealpha"] = 1.0
 plt.rcParams["axes.axisbelow"] = True
 
-n_splits  = 10  # K-fold CV (default: 5 -> 10)
-n_repeats = 10  # number of repeats (default: 10)
+n_splits  = 2  # K-fold CV (default: 5 -> 10)
+n_repeats = 2  # number of repeats (default: 10)
 random_state = 0
 cv = RepeatedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=random_state)
 
@@ -56,12 +56,12 @@ def make_dataframe_form_csv(csvfile=None):
     return df
 
 
-def remove_irregular_samples(df=None):
+def remove_irregular_samples(df=None, key="E_ads"):
     from sklearn.impute import SimpleImputer
 
     # remove positive adssorption energy
     before = len(df)
-    df = df[df["E_ads"] < 0.0]
+    df = df[df[key] < 0.0]
     after = len(df)
     print("removing positove adsorption energy: {0:d} --> {1:d}".format(before, after))
 
@@ -228,28 +228,45 @@ os.makedirs(outdir, exist_ok=True)
 os.system("rm {}/*".format(outdir))
 
 # setup dataframe
-df_surf = make_dataframe_from_json(jsonfile="surf_x.json")
-
-# adsorbate
-adsorbate = "CH3"
-df_ads = make_dataframe_from_json(jsonfile=adsorbate + "_x" + ".json")
-X_ads  = df_ads
+df = make_dataframe_from_json(jsonfile="surf_x.json")
+X  = df
 
 # adsorption energy
 df_Eads = make_dataframe_from_json(jsonfile="Eads.json")
 Y_ads   = df_Eads
-print(Y_ads)
-quit()
 
-# concat
-X = pd.concat(X_surf, X_ads, axis=1)
+df_all = pd.DataFrame()
 
-key = "E_ads[" + adsorbate + "]"
-y = df[key]
+adsorbates = ["CO", "CH3"]
+for adsorbate in adsorbates:
+    df_ads = make_dataframe_from_json(jsonfile=adsorbate + "_x" + ".json")
+    for i, name in enumerate(df.index):
+        label = name + "_" + adsorbate
 
-#df = remove_irregular_samples(df)
-#y = -df["E_ads"]  # more positive = stronger adsorption
-#y = df["E_ads"]  # more negative = stronger adsorption
+        ads_value = df_ads.loc[adsorbate]["e_fermi"]
+        E_ads = df_Eads.loc[label]["E_ads"]
+
+        tmp = pd.Series(X.loc[name])
+        series_ads   = pd.Series([ads_value], index=["ads_descriptor"])
+        series_name  = pd.Series([label], index=["system"])
+        series_Eads  = pd.Series([E_ads], index=["E_ads"])
+        tmp = pd.concat([tmp, series_ads])
+        tmp = pd.concat([tmp, series_name])
+        tmp = pd.concat([tmp, series_Eads])
+
+        #X.iloc[i]["ads_descriptor"] = ads_desciptor
+        #print(df_ads.loc[adsorbate]["e_fermi"], E_ads)
+        df_all = pd.concat([df_all, tmp], axis=1)
+
+df_all = df_all.T
+df_all = df_all.set_index("system")
+
+X = df_all.copy()
+del X["E_ads"]
+
+df_all = remove_irregular_samples(df_all)
+y = df_all["E_ads"]  # more negative = stronger adsorption
+#y = -df_all["E_ads"]  # more positive = stronger adsorption
 
 # plot correlation matrix
 plot_correlation_matrix(df=df, outdir=outdir)
