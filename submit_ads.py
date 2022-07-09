@@ -10,15 +10,15 @@ env = "grand"  # "ito" or "grand"
 dict = {
   "0":  {"element": "Rh", "lattice": "fcc"},
   "1":  {"element": "Pd", "lattice": "fcc"},
-# "2":  {"element": "Ir", "lattice": "fcc"},
-# "3":  {"element": "Pt", "lattice": "fcc"},
-# "4":  {"element": "Cu", "lattice": "fcc"},
-# "5":  {"element": "Ag", "lattice": "fcc"},
-# "6":  {"element": "Au", "lattice": "fcc"},
-# "7":  {"element": "Ru", "lattice": "fcc"},
-# "8":  {"element": "Os", "lattice": "fcc"},
-# "9":  {"element": "Cd", "lattice": "fcc"},
-# "10": {"element": "Hg", "lattice": "fcc"}
+  "2":  {"element": "Ir", "lattice": "fcc"},
+  "3":  {"element": "Pt", "lattice": "fcc"},
+  "4":  {"element": "Cu", "lattice": "fcc"},
+  "5":  {"element": "Ag", "lattice": "fcc"},
+  "6":  {"element": "Au", "lattice": "fcc"},
+  "7":  {"element": "Ru", "lattice": "fcc"},
+  "8":  {"element": "Os", "lattice": "fcc"},
+  "9":  {"element": "Cd", "lattice": "fcc"},
+  "10": {"element": "Hg", "lattice": "fcc"}
   }
 
 if alloy:
@@ -53,7 +53,7 @@ if alloy:
                 os.system(command)
 
 # do pure metal if the loop is first_time
-adsorbates = ["CO", "CH3"]
+adsorbates = ["CO", "CH3", "NO"]
 
 if add_pure_metals:
     for i in range(0, len(dict)):
