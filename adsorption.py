@@ -50,7 +50,7 @@ face_str = ",".join(map(str, face)).replace(",", "")
 
 position_str = "atop"  # atop, hcp, fcc
 
-if adsorbate == "CO" or adsorbate == "NO":
+if adsorbate in ["CO", "NO", "CH"]:
     ads_height = 1.6
     ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
 elif adsorbate == "CH3":
