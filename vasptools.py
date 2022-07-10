@@ -161,7 +161,7 @@ def read_cohp(cohpfile="COHPCAR.lobster"):
     f.readline()  # skip first
     ndos = int(f.readline().split()[2])
 
-    [f.readline() for i in range(2)]
+    [f.readline() for _ in range(2)]
 
     ene  = []
     cohp = []

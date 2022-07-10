@@ -25,42 +25,42 @@ dict = {
 
 if alloy:
     for i in range(0, len(dict)):
-        elm1 = dict[str(i)]["element"]
+        elem1 = dict[str(i)]["element"]
         for j in range(i+1, len(dict)):
-            elm2 = dict[str(j)]["element"]
+            elem2 = dict[str(j)]["element"]
 
             for ads in adsorbates:
                 # --- change by 50% --> gives 21 systems w.o. pure metals
-           	    for cmp1 in range(50,100,50): # start, end, diff
+                for comp1 in range(50, 100, 50):  # start, end, diff
 
                 # --- change by 25% --> gives 63 systems w.o. pure metals
-            	#for cmp1 in range(25,100,25): # start, end, diff
+                #for comp1 in range(25,100,25): # start, end, diff
 
-            	# --- change by 10%
-            	#for cmp1 in range(10,50,10):  # start, end, diff # part1
-            	#for cmp1 in range(50,100,10): # start, end, diff # part2
+                # --- change by 10%
+                #for comp1 in range(10,50,10):  # start, end, diff # part1
+                #for comp1 in range(50,100,10): # start, end, diff # part2
 
-            	# --- change by 5%
-            	#for cmp1 in range(25,50,5):  # start, end, diff # part2
-            	#for cmp1 in range(50,75,5):  # start, end, diff # part3
-            	#for cmp1 in range(75,100,5): # start, end, diff # part4
-            	#for cmp1 in range(5, 25, 5):   # start, end, diff # part1
+                # --- change by 5%
+                #for comp1 in range(25,50,5):  # start, end, diff # part2
+                #for comp1 in range(50,75,5):  # start, end, diff # part3
+                #for comp1 in range(75,100,5): # start, end, diff # part4
+                #for comp1 in range(5, 25, 5):   # start, end, diff # part1
 
                     if env == "ito":
-                    	cmd = "pjsub -x INP1={0} -x INP2={1} -x INP3={2} -x INP4={3} run_ito.sh".format(elm1, elm2, cmp1, ads)
-                	elif env == "grand":
-                    	cmd = "pjsub -x INP1={0} -x INP2={1} -x INP3={2} -x INP4={3} run_grand.sh".format(elm1, elm2, cmp1, ads)
+                        cmd = "pjsub -x INP1={0} -x INP2={1} -x INP3={2} -x INP4={3} run_ito.sh".format(elem1, elem2, comp1, ads)
+                    elif env == "grand":
+                        cmd = "pjsub -x INP1={0} -x INP2={1} -x INP3={2} -x INP4={3} run_grand.sh".format(elem1, elem2, comp1, ads)
 
-                	os.system(cmd)
+                    os.system(cmd)
 
 # do pure metal if the loop is first_time
 
 if add_pure_metals:
     for i in range(0, len(dict)):
-        elm = dict[str(i)]["element"]
+        elem = dict[str(i)]["element"]
         for ads in adsorbates:
             if env == "ito":
-                cmd = "pjsub run_ito.sh   -x INP1={0} -x INP2={1}".format(elm, ads)
+                cmd = "pjsub run_ito.sh   -x INP1={0} -x INP2={1}".format(elem, ads)
             elif env == "grand":
-                cmd = "pjsub run_grand.sh -x INP1={0} -x INP2={1}".format(elm, ads)
+                cmd = "pjsub run_grand.sh -x INP1={0} -x INP2={1}".format(elem, ads)
             os.system(cmd)
