@@ -21,8 +21,8 @@ plt.rcParams["legend.frameon"] = False
 plt.rcParams["legend.framealpha"] = 1.0
 plt.rcParams["axes.axisbelow"] = True
 
-n_splits  = 2  # K-fold CV (default: 5 -> 10)
-n_repeats = 2  # number of repeats (default: 10)
+n_splits  = 5  # K-fold CV (default: 5 -> 10)
+n_repeats = 1  # number of repeats (default: 10)
 random_state = 0
 cv = RepeatedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=random_state)
 
@@ -129,14 +129,18 @@ def plot_variability_of_coefficients(df=None, model=None, model_name="lasso", ou
     from sklearn.model_selection import cross_validate
 
     feature_names = df.columns
+    if "E_ads" in feature_names:
+        feature_names.remove("E_ads")
+
     if model_name is None:
         raise ValueError("input model name")
 
     cv_model = cross_validate(model, X, y, cv=cv, return_estimator=True)
+
     if model_name == "lasso":
-        coefs = pd.DataFrame([est.coef_ for est in cv_model["estimator"]], columns=feature_names[1:])
+        coefs = pd.DataFrame([est.coef_ for est in cv_model["estimator"]], columns=feature_names)
     else:
-        coefs = pd.DataFrame([est.feature_importances_ for est in cv_model["estimator"]], columns=feature_names[1:])
+        coefs = pd.DataFrame([est.feature_importances_ for est in cv_model["estimator"]], columns=feature_names)
 
     fig, ax = plt.subplots(figsize=(8, 10))
     seaborn.boxplot(data=coefs, orient="h", saturation=0.5, color="cyan", linewidth=1.0)
@@ -233,7 +237,6 @@ X  = df
 
 # adsorption energy
 df_Eads = make_dataframe_from_json(jsonfile="Eads.json")
-Y_ads   = df_Eads
 
 df_all = pd.DataFrame()
 
@@ -254,22 +257,20 @@ for adsorbate in adsorbates:
         tmp = pd.concat([tmp, series_name])
         tmp = pd.concat([tmp, series_Eads])
 
-        #X.iloc[i]["ads_descriptor"] = ads_desciptor
-        #print(df_ads.loc[adsorbate]["e_fermi"], E_ads)
         df_all = pd.concat([df_all, tmp], axis=1)
 
 df_all = df_all.T
 df_all = df_all.set_index("system")
+df_all = remove_irregular_samples(df_all)
 
 X = df_all.copy()
-del X["E_ads"]
-
-df_all = remove_irregular_samples(df_all)
 y = df_all["E_ads"]  # more negative = stronger adsorption
 #y = -df_all["E_ads"]  # more positive = stronger adsorption
 
+del X["E_ads"]
+
 # plot correlation matrix
-plot_correlation_matrix(df=df, outdir=outdir)
+plot_correlation_matrix(df=df_all, outdir=outdir)
 
 # train-test split
 test_size = 1.0 / n_splits
@@ -320,7 +321,7 @@ plt.clf()
 plt.close()
 
 lasso = grid.best_estimator_.named_steps["lasso"]
-plot_variability_of_coefficients(df=df, model=lasso, model_name="lasso", outdir=outdir)
+plot_variability_of_coefficients(df=X, model=lasso, model_name="lasso", outdir=outdir)
 
 # learning_curve for LASSO
 best_param = list(grid.best_params_.values())[0]
@@ -402,7 +403,7 @@ for name, method in zip(names, methods):
     plt.clf()
     plt.close()
 
-    plot_variability_of_coefficients(df=df, model=method, model_name=name, outdir=outdir)
+    plot_variability_of_coefficients(df=X, model=method, model_name=name, outdir=outdir)
 
     # shap plot
     make_shap_plot(model=method, model_name=name, X=X_train, outdir=outdir)
