@@ -17,18 +17,18 @@ import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--element1", default="Pt")
-parser.add_argument("--element2", default=None)
+parser.add_argument("--elem1", default="Pt")
+parser.add_argument("--elem2", default=None)
 parser.add_argument("--comp1", default=None)
-parser.add_argument("--adsorbate", default="CH3")
+parser.add_argument("--ads", default="CH3")
 parser.add_argument("--surf_json", default="surf_data.json")
 parser.add_argument("--calculator", default="emt")
 
 args = parser.parse_args()
-element1   = args.element1
-element2   = args.element2
+elem1   = args.elem1
+elem2   = args.elem2
 comp1      = args.comp1
-adsorbate  = args.adsorbate
+ads  = args.ads
 surf_json  = args.surf_json
 calculator = args.calculator.lower()
 
@@ -37,23 +37,23 @@ calc_formation_energy = True  # alculate formation energy of BULK ALLOY from its
 do_cohp = False
 lobster = "/lustre0/home/n22240/lobster/lobster-3.2.0/lobster-3.2.0"
 
-if element2 is not None:
+if elem2 is not None:
     alloy   = True
     comp2   = 100 - comp1
-    element = element1 + "{:.2f}".format(comp1/100.0) + element2 + "{:.2f}".format(comp2/100.0)
+    elem = elem1 + "{:.2f}".format(comp1/100.0) + elem2 + "{:.2f}".format(comp2/100.0)
 else:
     alloy   = False
-    element = element1
+    elem = elem1
 
 face = (1, 1, 1)
 face_str = ",".join(map(str, face)).replace(",", "")
 
 position_str = "atop"  # atop, hcp, fcc
 
-if adsorbate in ["CO", "NO", "CH"]:
+if ads in ["CO", "NO", "CH"]:
     ads_height = 1.6
     ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
-elif adsorbate == "CH3":
+elif ads == "CH3":
     ads_height = 2.2
     ads_geom  = [(1, 1, 0), (0.3, 0.6, 0), (1.7, 0.6, 0), (1, 1.8, 0)]
 else:
@@ -87,7 +87,7 @@ if "vasp" in calculator:
     ispin  =  1  # NOTICE: "analyze.dos" is not yet adjusted to ispin=2
     ibrion =  2
     nfree  =  20
-    ispin_adsorbate = 1
+    ispin_ads = 1
     lreal  =  True
 
     # single point
@@ -118,8 +118,8 @@ if "vasp" in calculator:
 # directry things
 #
 cudir   = os.getcwd()
-#workdir = os.path.join("/tmp/" + element + "_" + face_str + "_" + adsorbate)  # whisky
-workdir = os.path.join(cudir, element + "_" + face_str + "_" + adsorbate)  # other
+#workdir = os.path.join("/tmp/" + elem + "_" + face_str + "_" + ads)  # whisky
+workdir = os.path.join(cudir, elem + "_" + face_str + "_" + ads)  # other
 
 clean = True
 if os.path.isdir(workdir) and clean:
@@ -155,9 +155,9 @@ elif "emt" in calculator:
 # ------------------------ bulk ---------------------------
 #
 if alloy:
-    bulk = make_bulk(element1, element2=element2, comp1=comp1, repeat=repeat_bulk)
+    bulk = make_bulk(element1=elem1, element2=elem2, comp1=comp1, repeat=repeat_bulk)
 else:
-    bulk = make_bulk(element, repeat=repeat_bulk)
+    bulk = make_bulk(element1=elem, repeat=repeat_bulk)
 
 ## lattice optimization
 lattice, a0 = lattice_info_guess(bulk)
@@ -175,7 +175,7 @@ e_form = 0.0
 if alloy and calc_formation_energy:
     nat = 0
     e_bulk_component = 0.0
-    for ielem in [element1, element2]:
+    for ielem in [elem1, elem2]:
         tmpbulk = make_bulk(ielem, repeat=2)
         bulk_opt = optimize_lattice_constant(tmpbulk, lattice=lattice, a0=a0, xc=xc, encut=encut,
                                              ediff=ediff, ediffg=ediff*0.1, nsw=nsw, npar=npar, nsim=nsim)
@@ -258,7 +258,7 @@ e_surf = (e_slab - (len(surf)/len(bulk))*e_bulk) / (2.0*surf_area)
 
 if "vasp" in calculator:
     # copy DOSCAR of surface to currentdir
-    dosfile = "DOSCAR_" + element + "_" + face_str
+    dosfile = "DOSCAR_" + elem + "_" + face_str
     dosfile = os.path.join(cudir, dosfile)
     os.system("cp DOSCAR %s" % dosfile)
 
@@ -269,21 +269,21 @@ if "vasp" in calculator:
     if do_cohp:
         make_lobsterin()
         os.system("env OMP_NUM_THREADS=%d %s" % (npar, lobster))
-        cohpfile  = "COHPCAR_" + element + "_" + face_str
+        cohpfile  = "COHPCAR_" + elem + "_" + face_str
         cohpfile  = os.path.join(cudir, cohpfile)
         os.system("cp COHPCAR.lobster %s" % cohpfile)
 #
 # ------------------------ adsorbate ------------------------
 #
 cell = [10.0, 10.0, 10.0]
-mol  = Atoms(adsorbate, positions=ads_geom, cell=cell, pbc=True)
+mol  = Atoms(ads, positions=ads_geom, cell=cell, pbc=True)
 
 if "vasp" in calculator:
-    calc_mol_opt  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
+    calc_mol_opt  = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_ads, algo="VeryFast",
                          encut=encut_sp, ismear=0, sigma=0.05, istart=0, nelm=nelm, nelmin=nelmin,
                          isym=isym, ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
                          kpts=[1, 1, 1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree)
-    calc_mol_sp   = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_adsorbate, algo="VeryFast",
+    calc_mol_sp   = Vasp(prec=prec, xc=xc, pp=pp, ispin=ispin_ads, algo="VeryFast",
                          encut=encut_sp, ismear=0, sigma=0.05, istart=0, nelm=nelm, nelmin=nelmin,
                          isym=isym, ibrion=-1, nsw=0, potim=potim, ediff=ediff, ediffg=ediffg,
                          kpts=[1, 1, 1], gamma=gamma, npar=npar, nsim=nsim, lreal=True, nfree=nfree, lorbit=10)
@@ -291,7 +291,7 @@ elif "emt" in calculator:
     calc_mol_opt = EMT()
     calc_mol_sp  = EMT()
 
-print("calculating adsorbate --- {:s}".format(adsorbate), flush=True)
+print("calculating adsorbate --- {:s}".format(ads), flush=True)
 
 # opt
 mol.set_calculator(calc_mol_opt)
@@ -304,7 +304,7 @@ mol.get_potential_energy()
 e_mol = mol.get_potential_energy()
 
 # copy DOSCAR of adsorbate
-dosfile = "DOSCAR_" + adsorbate
+dosfile = "DOSCAR_" + ads
 dosfile = os.path.join(cudir, dosfile)
 if not os.path.exists(dosfile):
     os.system("cp DOSCAR %s" % dosfile)
@@ -326,7 +326,7 @@ elif position_str == "fcc":
     offset = (0.3333, 0.3333)
 
 # shift H of CH3 to upper
-if adsorbate == "CH3":
+if ads == "CH3":
     for i, j in enumerate(mol.get_chemical_symbols()):
         if j == "H":
             mol[i].position[2] += 0.5
@@ -349,13 +349,13 @@ e_ads = e_tot - (e_slab + e_mol)
 # copy vasprun.xml
 #
 if "vasp" in calculator:
-    xmlfile  = "vasprun_" + element + "_" + face_str + "_" + adsorbate + ".xml"
+    xmlfile  = "vasprun_" + elem + "_" + face_str + "_" + ads + ".xml"
     xmlfile  = os.path.join(cudir, xmlfile)
     os.system("cp vasprun.xml %s" % xmlfile)
 #
 # write to surf
 #
-system = element + "_" + face_str + "_" + adsorbate
+system = elem + "_" + face_str + "_" + ads
 db_surf.write(surf, system=system, lattice=lattice, data={"E_ads": e_ads, "E_form": e_form, "E_surf": e_surf})
                                                           
 print("done: E_ads = {:6.3f}".format(e_ads), flush=True)

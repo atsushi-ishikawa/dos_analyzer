@@ -61,8 +61,8 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
     return bulk
 
 
-def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol",
-                              encut=400, ediff=1.0e-5, ediffg=1.0e-6, npar=1, nsim=1):
+def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", isif=7,
+                              encut=400, ediff=1.0e-5, ediffg=1.0e-6, nsw=50, npar=1, nsim=1):
     """
     function to do bulk optimization
     """
@@ -70,8 +70,9 @@ def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol",
     from ase.calculators.vasp import Vasp
     import os
     import shutil
+    import copy
 
-    # directry things
+    bulk_copy = bulk.copy()
     cudir   = os.getcwd()
     workdir = os.path.join(cudir, "lattice_opt")
     os.makedirs(workdir)
@@ -84,8 +85,6 @@ def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol",
     nelmin = 5
     kpts   = [3, 3, 3]
     gamma  = True
-    nsw    = 200
-    isif   = 6  # or 6---freezing ions
 
     xc = xc.lower()
     if xc == "pbe" or xc == "pbesol" or xc == "rpbe":
@@ -102,11 +101,15 @@ def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol",
                 ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
                 kpts=kpts, gamma=gamma, isym=0, npar=npar, nsim=nsim, lreal=False)
 
-    bulk.set_calculator(calc)
-    bulk.get_potential_energy()
+    bulk_copy.set_calculator(calc)
+    bulk_copy.get_potential_energy()
+
+    bulk_opt = bulk.copy()
+    bulk_opt.cell = bulk_copy.cell
 
     os.chdir(cudir)
     shutil.rmtree(workdir)
+    return bulk_opt
 
 
 def sort_atoms_by_z(atoms):

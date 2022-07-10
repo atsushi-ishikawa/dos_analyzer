@@ -19,11 +19,10 @@ cp $VASP_VDW ./
 # remove old results
 rm stdout* stderr*
 
-# INP variables are given by submit_ads.py: INP1 = element1, INP2 = adsorbate
+# INP variables are given by submit_ads.py: INP1 = elem1, INP2 = ads
 
 #python adsorption.py ${INP1} ${INP2} ${INP3} 1> std_${INP1}_${INP2}_${INP3}_ads.out 2> err_${INP1}_${INP2}_${INP3}_ads.out # alloy
 #python adsorption.py ${INP1} ${INP2} ${INP3} 1> std_${INP1}_${INP2}_${INP3}_ads.out 2> err_${INP1}_${INP2}_${INP3}_ads.out # alloy
-#python adsorption.py --calculator="vasp" 1> stdout 2> stderr
-#python adsorption.py --element1=${INP1} --adsorbate=${INP2} --calculator="vasp" 1> stdout 2> stderr
-python adsorption.py --element1=${INP1} --adsorbate=${INP2} --calculator="vasp" 1> std_${INP1}_${INP2}.out 2> err_${INP1}_${INP2}.out
+#python adsorption.py --elem1=${INP1} --ads=${INP2} --calculator="vasp" 1> std_${INP1}_${INP2}.out 2> err_${INP1}_${INP2}.out
+python adsorption.py --elem1=${INP1} --elem2=${INP2} --comp=${INP3} --ads=${INP4} --calculator="vasp" 1> std_${INP1}_${INP2}_${INP3}_${INP4}.out 2> err_${INP1}_${INP2}_${INP3}_${INP4}.out
 
