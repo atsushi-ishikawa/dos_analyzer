@@ -64,7 +64,7 @@ for idoscar in surface_doscars:
     data.update(descriptor)
     db_surf.insert(data)
 
-Eads_json = "Eads.json"
+Eads_json = "E_ads.json"
 os.system("rm {}".format(Eads_json))
 db_Eads = TinyDB(Eads_json)
 
