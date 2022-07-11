@@ -21,8 +21,15 @@ rm stdout* stderr*
 
 # INP variables are given by submit_ads.py: INP1 = elem1, INP2 = ads
 
+if [ "${INP3}" != "" ]; then
+	# alloy
+	python adsorption.py --elem1=${INP1} --elem2=${INP2} --comp1=${INP3} --ads=${INP4} --calculator="vasp" 1> std_${INP1}_${INP2}_${INP3}_${INP4}.out 2> err_${INP1}_${INP2}_${INP3}_${INP4}.out
+else
+	# pure metals
+	python adsorption.py --elem1=${INP1} --ads=${INP2} --calculator="vasp" 1> std_${INP1}_${INP2}.out 2> err_${INP1}_${INP2}.out
+fi
+
 #python adsorption.py ${INP1} ${INP2} ${INP3} 1> std_${INP1}_${INP2}_${INP3}_ads.out 2> err_${INP1}_${INP2}_${INP3}_ads.out # alloy
 #python adsorption.py ${INP1} ${INP2} ${INP3} 1> std_${INP1}_${INP2}_${INP3}_ads.out 2> err_${INP1}_${INP2}_${INP3}_ads.out # alloy
 #python adsorption.py --elem1=${INP1} --ads=${INP2} --calculator="vasp" 1> std_${INP1}_${INP2}.out 2> err_${INP1}_${INP2}.out
-python adsorption.py --elem1=${INP1} --elem2=${INP2} --comp=${INP3} --ads=${INP4} --calculator="vasp" 1> std_${INP1}_${INP2}_${INP3}_${INP4}.out 2> err_${INP1}_${INP2}_${INP3}_${INP4}.out
 

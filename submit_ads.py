@@ -11,8 +11,8 @@ adsorbates = ["CO", "CH3"]
 dict = {
   "0":  {"element": "Rh", "lattice": "fcc"},
   "1":  {"element": "Pd", "lattice": "fcc"},
-# "2":  {"element": "Ir", "lattice": "fcc"},
-# "3":  {"element": "Pt", "lattice": "fcc"},
+  "2":  {"element": "Ir", "lattice": "fcc"},
+  "3":  {"element": "Pt", "lattice": "fcc"},
 # "4":  {"element": "Cu", "lattice": "fcc"},
 # "5":  {"element": "Ag", "lattice": "fcc"},
 # "6":  {"element": "Au", "lattice": "fcc"},

@@ -17,18 +17,18 @@ import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--elem1", default="Pt")
-parser.add_argument("--elem2", default=None)
-parser.add_argument("--comp1", default=None)
-parser.add_argument("--ads", default="CH3")
-parser.add_argument("--surf_json", default="surf_data.json")
-parser.add_argument("--calculator", default="emt")
+parser.add_argument("--elem1", default="Pt", help="element")
+parser.add_argument("--elem2", default=None, help="second element for alloy")
+parser.add_argument("--comp1", default=None, help="component of the first element (%) for alloy")
+parser.add_argument("--ads", default="CH3", help="adsorbate molecule")
+parser.add_argument("--surf_json", default="surf_data.json", help="json to store data")
+parser.add_argument("--calculator", default="emt", help="calculator")
 
 args = parser.parse_args()
-elem1   = args.elem1
-elem2   = args.elem2
-comp1      = args.comp1
-ads  = args.ads
+elem1 = args.elem1
+elem2 = args.elem2
+comp1 = args.comp1
+ads   = args.ads
 surf_json  = args.surf_json
 calculator = args.calculator.lower()
 
@@ -38,12 +38,13 @@ do_cohp = False
 lobster = "/lustre0/home/n22240/lobster/lobster-3.2.0/lobster-3.2.0"
 
 if elem2 is not None:
-    alloy   = True
-    comp2   = 100 - comp1
-    elem = elem1 + "{:.2f}".format(comp1/100.0) + elem2 + "{:.2f}".format(comp2/100.0)
+    alloy = True
+    comp1 = float(comp1)
+    comp2 = 100.0 - comp1
+    elem  = elem1 + "{:.2f}".format(comp1/100.0) + elem2 + "{:.2f}".format(comp2/100.0)
 else:
-    alloy   = False
-    elem = elem1
+    alloy = False
+    elem  = elem1
 
 face = (1, 1, 1)
 face_str = ",".join(map(str, face)).replace(",", "")
@@ -183,7 +184,7 @@ if alloy and calc_formation_energy:
         # bulk energy for formation energy --- same with alloy surface calculator
 
         # single point
-        bulk_optset_calculator(calc_bulk_sp)
+        bulk_opt.set_calculator(calc_bulk_sp)
         ene = bulk_opt.get_potential_energy()
         ene /= len(bulk_opt)
         nat = bulk_opt.get_chemical_symbols().count(ielem)
