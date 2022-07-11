@@ -240,7 +240,7 @@ df_Eads = make_dataframe_from_json(jsonfile="Eads.json")
 
 df_all = pd.DataFrame()
 
-adsorbates = ["CO", "CH3"]
+adsorbates = ["CO", "CH3", "NO"]
 adsorbate_desciptor = "p_center"
 #adsorbate_desciptor = "e_fermi"
 

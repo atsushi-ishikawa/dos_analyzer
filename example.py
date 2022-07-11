@@ -36,7 +36,7 @@ for idos in doscars:
         surface_doscars.append(idos)
 
 # adsorbate
-adsorbates = ["CO", "CH3"]
+adsorbates = ["CO", "CH3", "NO"]
 
 for adsorbate in adsorbates:
     data = {}
