@@ -241,12 +241,15 @@ df_Eads = make_dataframe_from_json(jsonfile="Eads.json")
 df_all = pd.DataFrame()
 
 adsorbates = ["CO", "CH3"]
+adsorbate_desciptor = "p_center"
+#adsorbate_desciptor = "e_fermi"
+
 for adsorbate in adsorbates:
     df_ads = make_dataframe_from_json(jsonfile=adsorbate + "_x" + ".json")
     for i, name in enumerate(df.index):
         label = name + "_" + adsorbate
 
-        ads_value = df_ads.loc[adsorbate]["e_fermi"]
+        ads_value = df_ads.loc[adsorbate][adsorbate_desciptor]
         E_ads = df_Eads.loc[label]["E_ads"]
 
         tmp = pd.Series(X.loc[name])
