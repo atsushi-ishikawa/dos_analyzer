@@ -12,12 +12,23 @@ class VaspDosPlus:
         self._surf_jsonfile = None
         self._system = None
         self._numpeaks = None
-
         self.db = None
-        self.margin = 1.0
+        self._relative_to_fermi = None
+
+        # --- conditions ---
+        self.margin = 2.0
         # Margin for the occupied band. Efermi + margin is considered as occupied.
         # margin = 0.0 is not good.
         # Better to increase this value when including edge.
+        self.normalize_height = True    # True is maybe better
+        self.do_hilbert = False
+        self.do_cohp = False
+        self.geometry_information = False
+
+        #self.sigma = [20, 40, 70]  # smearing width ... 30-60
+        #self.sigma = [20, 40, 80]  # smearing width ... 30-60
+        self.sigma = [10, 10, 10]
+        # --- end conditions ---
 
         self.vaspdos = VaspDos(doscar=doscar)
         self.efermi = get_efermi_from_doscar(self.doscar)
@@ -31,17 +42,14 @@ class VaspDosPlus:
             line1 = f.readline()
             self.natom = int(line1.split()[0])
 
-        self.normalize_height = True    # True is maybe better
-        self.relative_to_fermi = False
-        self.do_hilbert = False
-        self.do_cohp = False
-        self.geometry_information = False
+    @property
+    def relative_to_fermi(self):
+        return self._relative_to_fermi
 
-        #self.sigma = [20, 40, 70]  # smearing width ... 30-60
-        #self.sigma = [20, 40, 80]  # smearing width ... 30-60
-        self.sigma = [10, 10, 10]
-
-        if self.relative_to_fermi:
+    @relative_to_fermi.setter
+    def relative_to_fermi(self, relative_to_fermi=False):
+        self._relative_to_fermi = relative_to_fermi
+        if relative_to_fermi:
             self.energy -= self.efermi
 
     @property
@@ -84,13 +92,12 @@ class VaspDosPlus:
             descriptors (dict)
         """
         check = False
+        sort_key = "height"  # "height" or "position"
 
         self.set_database()
 
         descriptors = {}
         descriptors = self.add_system_to_dict(dict=descriptors)
-        #if not adsorbate:
-        #    descriptors = self.add_adsorption_energy_to_dict(dict=descriptors)
 
         if self.do_cohp:
             cohpcar = self._system + "COHPCAR"
@@ -124,9 +131,8 @@ class VaspDosPlus:
             try:
                 orb_name = self.from_012_to_spd(orbital)
                 params, rss, r2 = gaussian_fit(np.array(self.energy), pdos, params)
-                peaks = sort_peaks(params, key="position")
-                print(
-                    "found {0:>2d} peaks -- {1:s} orbital R^2 = {2:>5.3f}".format(len(peaks), orb_name, r2))
+                peaks = sort_peaks(params, key=sort_key)
+                print("found {0:>2d} peaks -- {1:s} orbital R^2 = {2:>5.3f}".format(len(peaks), orb_name, r2))
             except:
                 r2 = 0.0
                 peaks = [(0, 0, 0) for _ in range(self._numpeaks)]
@@ -144,13 +150,14 @@ class VaspDosPlus:
                 tmp.append(peak[1])
                 tmp.append(peak[2])
 
-            peaks = sort_peaks(tmp, key="position")
+            peaks = sort_peaks(tmp, key=sort_key)
 
-            if self.relative_to_fermi:
-                peaks = list(map(lambda x: (x[0] - self.efermi, x[1], x[2]), peaks))
-
-            occ_peaks = list(filter(lambda x: x[0] < self.efermi + self.margin, peaks))
-            vir_peaks = list(filter(lambda x: x[0] >= self.efermi + self.margin, peaks))
+            if self._relative_to_fermi:
+                occ_peaks = list(filter(lambda x: x[0] <  self.margin, peaks))
+                vir_peaks = list(filter(lambda x: x[0] >= self.margin, peaks))
+            else:
+                occ_peaks = list(filter(lambda x: x[0] <  self.efermi + self.margin, peaks))
+                vir_peaks = list(filter(lambda x: x[0] >= self.efermi + self.margin, peaks))
 
             # zero padding upto numpeaks
             occ_peaks = occ_peaks + [(0, 0, 0)] * (self._numpeaks - len(occ_peaks))
@@ -205,7 +212,7 @@ class VaspDosPlus:
         if self.geometry_information:
             descriptors = self.add_geometry_info_to_dict(descriptors)
 
-        if not self.relative_to_fermi:
+        if not self._relative_to_fermi:
             descriptors.update({"e_fermi": self.efermi})
 
         if self.do_cohp:
@@ -218,9 +225,9 @@ class VaspDosPlus:
         if self.do_hilbert:
             tdos = self.vaspdos.dos
             upper_edge, lower_edge = self.get_dos_edge(tdos)
-            if self.relative_to_fermi:
-                upper_edge -= efermi
-                lower_edge -= efermi
+            if self._relative_to_fermi:
+                upper_edge -= self.efermi
+                lower_edge -= self.efermi
 
             descriptors.update({"upper_edge": upper_edge})
             descriptors.update({"lower_edge": lower_edge})
@@ -268,7 +275,6 @@ class VaspDosPlus:
         db = self.db
         id = db.get(system=self._system).id
         atoms = db.get_atoms(id=id)
-        # a, b, c, alpha, beta, gamma = atoms.get_cell_lengths_and_angles()  # deprecated
         a, b, c, alpha, beta, gamma = atoms.cell.cellpar()
         surf_area = a * b * math.sin(math.radians(gamma))
         volume = atoms.get_volume()
@@ -314,7 +320,7 @@ class VaspDosPlus:
         Args:
             dos: density of state (numpy array)
             params:
-            position_occ:
+            position_occ: list of occupied peaks
         """
         import seaborn as sb
         from scipy import fftpack
@@ -324,11 +330,11 @@ class VaspDosPlus:
         if self.do_hilbert:
             ih = fftpack.ihilbert(pdos)
 
-        sb.set(context='notebook', style='darkgrid', palette='deep',
-               font='sans-serif', font_scale=1, color_codes=False, rc=None)
+        sb.set(context='notebook', style='darkgrid', palette='deep',font='sans-serif', font_scale=1,
+               color_codes=False, rc=None)
         plt.plot(self.energy, fit, label="fitted")
         plt.plot(self.energy, dos, label="original")
-        plt.vlines(position_occ, 0, np.max(dos), linestyle="dashed", linewidth=0.5)
+        plt.vlines(x=position_occ, ymin=0, ymax=np.max(dos), linestyle="dashed", linewidth=0.5)
 
         if self.do_hilbert:
             plt.plot(self.energy, ih, label="inverse Hilbert")

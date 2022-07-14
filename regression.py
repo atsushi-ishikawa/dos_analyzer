@@ -21,8 +21,8 @@ plt.rcParams["legend.frameon"] = False
 plt.rcParams["legend.framealpha"] = 1.0
 plt.rcParams["axes.axisbelow"] = True
 
-n_splits  = 5  # K-fold CV (default: 5 -> 10)
-n_repeats = 1  # number of repeats (default: 10)
+n_splits  = 5   # K-fold CV (default: 5 -> 10)
+n_repeats = 1   # number of repeats (default: 10)
 random_state = 0
 cv = RepeatedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=random_state)
 
@@ -61,7 +61,7 @@ def remove_irregular_samples(df=None, key="E_ads"):
 
     # remove positive adssorption energy
     before = len(df)
-    df = df[df[key] < 0.0]
+    df = df[df[key] < 5.0]
     after = len(df)
     print("removing positove adsorption energy: {0:d} --> {1:d}".format(before, after))
 
@@ -116,7 +116,8 @@ def make_shap_plot(model=None, model_name=None, X=None, outdir=None):
 def plot_variability_of_coefficients(df=None, model=None, model_name="lasso", outdir=None):
     """
     Plot the variability of LASSO or tree-regression coefficients.
-    See https://scikit-learn.org/stable/auto_examples/inspection/plot_linear_model_coefficient_interpretation.html
+    See https://scikit-learn.org/stable/auto_examples/inspection/
+        plot_linear_model_coefficient_interpretation.html
 
     Args:
         df:
@@ -140,7 +141,8 @@ def plot_variability_of_coefficients(df=None, model=None, model_name="lasso", ou
     if model_name == "lasso":
         coefs = pd.DataFrame([est.coef_ for est in cv_model["estimator"]], columns=feature_names)
     else:
-        coefs = pd.DataFrame([est.feature_importances_ for est in cv_model["estimator"]], columns=feature_names)
+        coefs = pd.DataFrame([est.feature_importances_ for est in cv_model["estimator"]],
+                              columns=feature_names)
 
     fig, ax = plt.subplots(figsize=(8, 10))
     seaborn.boxplot(data=coefs, orient="h", saturation=0.5, color="cyan", linewidth=1.0)
@@ -236,28 +238,33 @@ df = make_dataframe_from_json(jsonfile="surf_x.json")
 X  = df
 
 # adsorption energy
-df_Eads = make_dataframe_from_json(jsonfile="Eads.json")
+df_Eads = make_dataframe_from_json(jsonfile="E_ads.json")
 
 df_all = pd.DataFrame()
 
-adsorbates = ["CO", "CH3", "NO"]
-adsorbate_desciptor = "p_center"
-#adsorbate_desciptor = "e_fermi"
+adsorbates = ["CO", "CH3", "NO", "N2", "H2"]
+
+#ads_desciptors = ["s_center", "p_center", "s_position_occ_0", "p_position_occ_0", "e_fermi"]
+#ads_desciptors = ["s_position_occ_0", "p_position_occ_0", "e_fermi"]
+ads_desciptors = ["s_position_occ_0", "p_position_occ_0"]
+#ads_desciptors = ["s_center", "p_center"]
 
 for adsorbate in adsorbates:
     df_ads = make_dataframe_from_json(jsonfile=adsorbate + "_x" + ".json")
+
     for i, name in enumerate(df.index):
         label = name + "_" + adsorbate
-
-        ads_value = df_ads.loc[adsorbate][adsorbate_desciptor]
-        E_ads = df_Eads.loc[label]["E_ads"]
-
         tmp = pd.Series(X.loc[name])
-        series_ads   = pd.Series([ads_value], index=["ads_descriptor"])
-        series_name  = pd.Series([label], index=["system"])
-        series_Eads  = pd.Series([E_ads], index=["E_ads"])
-        tmp = pd.concat([tmp, series_ads])
+        series_name = pd.Series([label], index=["system"])
         tmp = pd.concat([tmp, series_name])
+        for ads_desciptor in ads_desciptors:
+            ads_value  = df_ads.loc[adsorbate][ads_desciptor]
+            index_name = "ads" + "_" + ads_desciptor
+            series_ads = pd.Series([ads_value], index=[index_name])
+            tmp = pd.concat([tmp, series_ads])
+
+        E_ads = df_Eads.loc[label]["E_ads"]
+        series_Eads = pd.Series([E_ads], index=["E_ads"])
         tmp = pd.concat([tmp, series_Eads])
 
         df_all = pd.concat([df_all, tmp], axis=1)
@@ -286,7 +293,7 @@ scaler = StandardScaler()
 #
 # ridge and lasso
 #
-max_iter = 3000
+max_iter = 1000
 methods = [Ridge(max_iter=max_iter), Lasso(max_iter=max_iter)]
 names = ["ridge", "lasso"]
 for name, method in zip(names, methods):
@@ -383,8 +390,10 @@ for name, method in zip(names, methods):
     plot_scatter_and_line(x=method.predict(X), y=y.values, model_name=name, outdir=outdir)
 
     # learning_curve for Random forest
-    train_sizes, train_scores, val_scores = learning_curve(estimator=method, X=X_train, y=y_train, scoring="r2",
-                                                           train_sizes=np.linspace(0.2, 1.0, 10), cv=cv)
+    train_sizes, train_scores, val_scores = learning_curve(estimator=method, X=X_train, y=y_train,
+                                                           scoring="r2", cv=cv,
+                                                           train_sizes=np.linspace(0.2, 1.0, 10))
+
     train_mean = np.mean(train_scores, axis=1)
     train_std = np.std(train_scores, axis=1)
     val_mean = np.mean(val_scores, axis=1)
