@@ -6,17 +6,18 @@ import sys
 add_pure_metals, alloy = True, True
 env = "grand"  # "ito" or "grand"
 
-adsorbates = ["CO", "CH3"]
+adsorbates = ["CO", "CH3", "NO", "N2", "H2"]
 
 dict = {
   "0":  {"element": "Rh", "lattice": "fcc"},
   "1":  {"element": "Pd", "lattice": "fcc"},
   "2":  {"element": "Ir", "lattice": "fcc"},
   "3":  {"element": "Pt", "lattice": "fcc"},
-# "4":  {"element": "Cu", "lattice": "fcc"},
-# "5":  {"element": "Ag", "lattice": "fcc"},
-# "6":  {"element": "Au", "lattice": "fcc"},
-# "7":  {"element": "Ru", "lattice": "fcc"}
+
+  "4":  {"element": "Cu", "lattice": "fcc"},
+  "5":  {"element": "Ag", "lattice": "fcc"},
+  "6":  {"element": "Au", "lattice": "fcc"},
+  "7":  {"element": "Ru", "lattice": "fcc"},
 
 # "8":  {"element": "Os", "lattice": "fcc"},
 # "9":  {"element": "Cd", "lattice": "fcc"},
@@ -64,3 +65,4 @@ if add_pure_metals:
             elif env == "grand":
                 cmd = "pjsub run_grand.sh -x INP1={0} -x INP2={1}".format(elem, ads)
             os.system(cmd)
+

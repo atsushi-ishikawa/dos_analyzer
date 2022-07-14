@@ -33,7 +33,7 @@ surf_json  = args.surf_json
 calculator = args.calculator.lower()
 
 optimize_lattice = True
-calc_formation_energy = True  # alculate formation energy of BULK ALLOY from its component metals
+calc_formation_energy = False  # calculate formation energy of BULK ALLOY from its component metals
 do_cohp = False
 lobster = "/lustre0/home/n22240/lobster/lobster-3.2.0/lobster-3.2.0"
 
@@ -49,9 +49,9 @@ else:
 face = (1, 1, 1)
 face_str = ",".join(map(str, face)).replace(",", "")
 
-position_str = "atop"  # atop, hcp, fcc
+position_str = "fcc"  # atop, hcp, fcc
 
-if ads in ["CO", "NO", "CH"]:
+if ads in ["CO", "NO", "CH", "N2", "H2"]:
     ads_height = 1.6
     ads_geom  = [(0, 0, 0), (0, 0, 1.2)]
 elif ads == "CH3":
@@ -79,8 +79,8 @@ if "vasp" in calculator:
     nelmin =  5
     nelm   =  40
     potim  =  0.10
-    nsw    =  5  # 200
-    ediff  =  1.0e-5
+    nsw    =  20  # 200
+    ediff  =  1.0e-4
     ediffg = -0.05
     kpts   =  [1, 1, 1]
     gamma  =  True
@@ -119,7 +119,6 @@ if "vasp" in calculator:
 # directry things
 #
 cudir   = os.getcwd()
-#workdir = os.path.join("/tmp/" + elem + "_" + face_str + "_" + ads)  # whisky
 workdir = os.path.join(cudir, elem + "_" + face_str + "_" + ads)  # other
 
 clean = True
@@ -178,7 +177,7 @@ if alloy and calc_formation_energy:
     e_bulk_component = 0.0
     for ielem in [elem1, elem2]:
         tmpbulk = make_bulk(ielem, repeat=2)
-        bulk_opt = optimize_lattice_constant(tmpbulk, lattice=lattice, a0=a0, xc=xc, encut=encut,
+        bulk_opt = optimize_lattice_constant(tmpbulk, lattice=lattice, a0=a0, xc=xc, encut=encut, isif=6,
                                              ediff=ediff, ediffg=ediff*0.1, nsw=nsw, npar=npar, nsim=nsim)
 
         # bulk energy for formation energy --- same with alloy surface calculator
@@ -315,16 +314,18 @@ if not os.path.exists(dosfile):
 if position_str == "atop":
     if nlayer == 2:
         position = (0, 0)
-        offset = (0.5, 0.5)
+        offset = (0.5, 0.5)  # confirmed
     elif nlayer == 3:
         position = (0, 0)
-        offset = (0.3333, 0.3333)
+        offset = (0.5, 0.5)  # unconfirmed
 elif position_str == "hcp":
-    position = (0, 0)
-    offset = (0.1667, 0.1667)
+    if nlayer == 2:
+        position = (0, 0)
+        offset = (0.1667, 0.1667)  # unconfirmed
 elif position_str == "fcc":
-    position = (0, 0)
-    offset = (0.3333, 0.3333)
+    if nlayer == 2:
+        position = (0, 0)
+        offset = (0.3333, 0.3333)  # confirmed
 
 # shift H of CH3 to upper
 if ads == "CH3":
@@ -360,3 +361,4 @@ system = elem + "_" + face_str + "_" + ads
 db_surf.write(surf, system=system, lattice=lattice, data={"E_ads": e_ads, "E_form": e_form, "E_surf": e_surf})
                                                           
 print("done: E_ads = {:6.3f}".format(e_ads), flush=True)
+
