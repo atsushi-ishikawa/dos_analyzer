@@ -49,8 +49,8 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
         # replace atoms in bulk randomly
         list = bulk.get_chemical_symbols()
 
-        #np.random.seed(1)# set random seed for reproducability
-        np.random.seed()
+        np.random.seed(1)# set random seed for reproducability
+        #np.random.seed()
 
         replace_list = np.random.choice(len(list), size=natom2, replace=False)
         for i in replace_list:
@@ -62,22 +62,15 @@ def make_bulk(element1, element2=None, comp1=100, lattice="fcc", a0=4.0, repeat=
 
 
 def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", isif=7,
-                              encut=400, ediff=1.0e-5, ediffg=1.0e-6, nsw=50, npar=1, nsim=1):
+                              encut=400, ediff=1.0e-5, ediffg=1.0e-6, nsw=100, npar=1, nsim=1):
     """
     function to do bulk optimization
     """
     from ase import Atoms
     from ase.calculators.vasp import Vasp
-    import os
-    import shutil
     import copy
 
     bulk_copy = bulk.copy()
-    cudir   = os.getcwd()
-    workdir = os.path.join(cudir, "lattice_opt")
-    os.makedirs(workdir)
-    os.chdir(workdir)
-    os.system("mkdir work_bulk")
 
     # compuational condition for Vasp
     prec   = "normal"
@@ -98,18 +91,16 @@ def optimize_lattice_constant(bulk, lattice="fcc", a0=4.0, xc="PBEsol", isif=7,
 
     calc = Vasp(prec=prec, xc=xc, pp=pp, ispin=1,
                 ismear=1, sigma=0.2, isif=isif, nelmin=nelmin, encut=encut,
-                ibrion=2, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
-                kpts=kpts, gamma=gamma, isym=0, npar=npar, nsim=nsim, lreal=False)
+                ibrion=1, nsw=nsw, potim=potim, ediff=ediff, ediffg=ediffg,
+                kpts=kpts, gamma=gamma, isym=-1, npar=npar, nsim=nsim, lreal=False)
+    calc.directory = "lattice_opt"
 
     bulk_copy.set_calculator(calc)
     bulk_copy.get_potential_energy()
 
-    bulk_opt = bulk.copy()
-    bulk_opt.cell = bulk_copy.cell
+    # note: returning Atoms may result in irregular positions
 
-    os.chdir(cudir)
-    shutil.rmtree(workdir)
-    return bulk_opt
+    return bulk_copy.get_positions(), bulk_copy.cell
 
 
 def sort_atoms_by_z(atoms):

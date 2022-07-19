@@ -3,25 +3,26 @@ import sys
 
 # no need to do separate calculation for pure metals when making alloy-including database,
 
-add_pure_metals, alloy = True, True
+add_pure_metals, alloy = True, False
 env = "grand"  # "ito" or "grand"
 
-adsorbates = ["CO", "CH3", "NO", "N2", "H2"]
+#adsorbates = ["CO", "CH3", "NO", "N2", "H2"]
+adsorbates = ["CO", "CH3"]
+
+adsorbates = "-".join(adsorbates)
 
 dict = {
   "0":  {"element": "Rh", "lattice": "fcc"},
   "1":  {"element": "Pd", "lattice": "fcc"},
   "2":  {"element": "Ir", "lattice": "fcc"},
   "3":  {"element": "Pt", "lattice": "fcc"},
-
   "4":  {"element": "Cu", "lattice": "fcc"},
   "5":  {"element": "Ag", "lattice": "fcc"},
   "6":  {"element": "Au", "lattice": "fcc"},
   "7":  {"element": "Ru", "lattice": "fcc"},
-
-# "8":  {"element": "Os", "lattice": "fcc"},
-# "9":  {"element": "Cd", "lattice": "fcc"},
-# "10": {"element": "Hg", "lattice": "fcc"}
+  "8":  {"element": "Os", "lattice": "fcc"},
+  "9":  {"element": "Cd", "lattice": "fcc"},
+  "10": {"element": "Hg", "lattice": "fcc"}
   }
 
 if alloy:
@@ -59,10 +60,9 @@ if alloy:
 if add_pure_metals:
     for i in range(0, len(dict)):
         elem = dict[str(i)]["element"]
-        for ads in adsorbates:
-            if env == "ito":
-                cmd = "pjsub run_ito.sh   -x INP1={0} -x INP2={1}".format(elem, ads)
-            elif env == "grand":
-                cmd = "pjsub run_grand.sh -x INP1={0} -x INP2={1}".format(elem, ads)
-            os.system(cmd)
+        if env == "ito":
+            cmd = 'pjsub run_ito.sh   -x INP1={0} -x INP2="{1}"'.format(elem, adsorbates)
+        elif env == "grand":
+            cmd = 'pjsub run_grand.sh -x INP1={0} -x INP2="{1}"'.format(elem, adsorbates)
+        os.system(cmd)
 
