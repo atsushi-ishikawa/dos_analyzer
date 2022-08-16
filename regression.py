@@ -21,7 +21,7 @@ plt.rcParams["legend.frameon"] = False
 plt.rcParams["legend.framealpha"] = 1.0
 plt.rcParams["axes.axisbelow"] = True
 
-n_splits  = 5   # K-fold CV (default: 5 -> 10)
+n_splits  = 10  # K-fold CV (default: 5 -> 10)
 n_repeats = 1   # number of repeats (default: 10)
 random_state = 0
 cv = RepeatedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=random_state)
@@ -56,12 +56,12 @@ def make_dataframe_form_csv(csvfile=None):
     return df
 
 
-def remove_irregular_samples(df=None, key="E_ads"):
+def remove_irregular_samples(df=None, key="E_ads", Emax=0.0):
     from sklearn.impute import SimpleImputer
 
     # remove positive adssorption energy
     before = len(df)
-    df = df[df[key] < 5.0]
+    df = df[df[key] < Emax]
     after = len(df)
     print("removing positove adsorption energy: {0:d} --> {1:d}".format(before, after))
 
@@ -242,7 +242,9 @@ df_Eads = make_dataframe_from_json(jsonfile="E_ads.json")
 
 df_all = pd.DataFrame()
 
-adsorbates = ["CO", "CH3", "NO", "N2", "H2"]
+adsorbates = ["CO", "CH3", "NO"]
+#adsorbates = ["CO", "CH3", "NO", "NH3"]
+#adsorbates = ["CO", "CH3", "NO", "N2", "H2"]
 
 #ads_desciptors = ["s_center", "p_center", "s_position_occ_0", "p_position_occ_0", "e_fermi"]
 #ads_desciptors = ["s_position_occ_0", "p_position_occ_0", "e_fermi"]
@@ -271,7 +273,7 @@ for adsorbate in adsorbates:
 
 df_all = df_all.T
 df_all = df_all.set_index("system")
-df_all = remove_irregular_samples(df_all)
+df_all = remove_irregular_samples(df_all, Emax=0.0)
 
 X = df_all.copy()
 y = df_all["E_ads"]  # more negative = stronger adsorption

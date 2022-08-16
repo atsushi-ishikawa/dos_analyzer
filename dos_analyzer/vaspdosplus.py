@@ -9,25 +9,24 @@ class VaspDosPlus:
     def __init__(self, doscar=None):
         self.doscar = doscar
 
-        self._surf_jsonfile = None
         self._system = None
         self._numpeaks = None
         self.db = None
         self._relative_to_fermi = None
 
         # --- conditions ---
-        self.margin = 2.0
+        self.margin = 0.0
         # Margin for the occupied band. Efermi + margin is considered as occupied.
         # margin = 0.0 is not good.
         # Better to increase this value when including edge.
         self.normalize_height = True    # True is maybe better
         self.do_hilbert = False
         self.do_cohp = False
-        self.geometry_information = False
+        self.geometry_information = True
 
         #self.sigma = [20, 40, 70]  # smearing width ... 30-60
         #self.sigma = [20, 40, 80]  # smearing width ... 30-60
-        self.sigma = [10, 10, 10]
+        self.sigma = [4, 4, 4]
         # --- end conditions ---
 
         self.vaspdos = VaspDos(doscar=doscar)
@@ -68,33 +67,23 @@ class VaspDosPlus:
     def system(self, systemname=None):
         self._system = systemname
 
-    @property
-    def surf_jsonfile(self):
-        return self._surf_jsonfile
-
-    @surf_jsonfile.setter
-    def surf_jsonfile(self, filename=None):
-        self._surf_jsonfile = filename
-
-    def set_database(self):
+    def set_database(self, jsonfile=None):
         from ase.db import connect
-        json = self._surf_jsonfile
-        self.db = connect(json)
+        self.db = connect(jsonfile)
 
-    def get_descriptors(self, adsorbate=False):
+    def get_descriptors(self, adsorbate=False, with_centers=True):
         """
         Get descriptors. Descriptors are peak positions, widths, and heights of s, p, and d-bands.
         The number of peaks should be specified by VaspDosPlus.numpeaks.
 
         Args:
             adsorbate: whether adsorbate or not
+            with_centers: whether to include s, p, d-band centers or not
         Returns:
             descriptors (dict)
         """
         check = False
-        sort_key = "height"  # "height" or "position"
-
-        self.set_database()
+        sort_key = "position"  # "height" or "position"
 
         descriptors = {}
         descriptors = self.add_system_to_dict(dict=descriptors)
@@ -197,8 +186,9 @@ class VaspDosPlus:
                 descriptors.update({orb_name + "_width_occ_" + str(ipeak): width_occ[ipeak]})
 
             # get s, p, d-center and higher moments
-            center = self.get_moments(pdos, order=1)
-            descriptors.update({orb_name + "_center": center})
+            if with_centers:
+                center = self.get_moments(pdos, order=1)
+                descriptors.update({orb_name + "_center": center})
             # higher moments ... not effective
             #second = self.get_moments(pdos, order=2)
             #descriptors.update({orb_name + "_second": second})
@@ -208,9 +198,6 @@ class VaspDosPlus:
             #descriptors.update({orb_name + "_forth": forth})
 
         # end loop for orbitals
-
-        if self.geometry_information:
-            descriptors = self.add_geometry_info_to_dict(descriptors)
 
         if not self._relative_to_fermi:
             descriptors.update({"e_fermi": self.efermi})
@@ -245,47 +232,6 @@ class VaspDosPlus:
         """
         tmp = {"system": self._system}
         dict.update(tmp)
-        return dict
-
-    def add_adsorption_energy_to_dict(self, dict=None):
-        """
-        Add adsorption energy (in eV) to dict.
-
-        Args:
-            dict:
-        Returns:
-            dict:
-        """
-        db   = self.db
-        id   = db.get(system=self._system).id
-        row  = db.get(id=id)
-        eads = row.data.E_ads
-        dict.update({"E_ads": eads})
-        return dict
-
-    def add_geometry_info_to_dict(self, dict=None):
-        """
-        Add geometry information (surface area etc.) to dict.
-
-        Args:
-            dict:
-        Returns:
-            dict:
-        """
-        db = self.db
-        id = db.get(system=self._system).id
-        atoms = db.get_atoms(id=id)
-        a, b, c, alpha, beta, gamma = atoms.cell.cellpar()
-        surf_area = a * b * math.sin(math.radians(gamma))
-        volume = atoms.get_volume()
-        atom_num = atoms.numbers.sum()
-        coord_num = self.get_adsorption_site(atoms=atoms, adsorbing_element="C")
-
-        dict.update({"surf_area": surf_area})
-        dict.update({"volume": volume})
-        dict.update({"atomic_numbers": float(atom_num)})
-        dict.update({"atomic_number_site": float(coord_num)})
-
         return dict
 
     def cohp_analysis(self, cohpcar):
@@ -339,7 +285,10 @@ class VaspDosPlus:
         if self.do_hilbert:
             plt.plot(self.energy, ih, label="inverse Hilbert")
 
-        plt.xlim([min(self.energy), max(self.energy) + self.margin])
+        if self._relative_to_fermi:
+            plt.xlim([min(self.energy), 0])
+        else:
+            plt.xlim([min(self.energy), max(self.energy) + self.margin])
 
         plt.legend()
         plt.show()

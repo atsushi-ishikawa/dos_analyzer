@@ -24,6 +24,7 @@ args = parser.parse_args()
 surf_json = args.surf_json
 numpeaks = args.numpeaks
 relative_to_fermi = True
+with_centers = True
 
 os.system("rm {}".format(surf_json))
 db_surf = TinyDB(surf_json)
@@ -36,9 +37,13 @@ for idos in doscars:
     if idos.count("_") == 2:
         surface_doscars.append(idos)
 
-adsorbates = ["CO", "CH3", "NO", "N2", "H2"]
+#adsorbates = ["CO", "CH3", "NO", "N2", "H2"]
+#adsorbates = ["CO", "CH3", "NO", "NH3"]
+adsorbates = ["CO", "CH3", "NO"]
 
 # get descriptor for adsorbates
+print("getting descriptors", flush=True)
+
 for adsorbate in adsorbates:
     data = {}
     ads_json = adsorbate + "_x.json"
@@ -51,7 +56,7 @@ for adsorbate in adsorbates:
     dos.numpeaks = 1  # only one peak in adsorbate
     dos.relative_to_fermi = relative_to_fermi
 
-    descriptor = dos.get_descriptors(adsorbate=True)
+    descriptor = dos.get_descriptors(adsorbate=True, with_centers=with_centers)
     data.update(descriptor)
     db_ads.insert(data)
 
@@ -60,11 +65,11 @@ for idoscar in surface_doscars:
     data = {}
 
     dos = VaspDosPlus(doscar=idoscar)
-    dos.surf_jsonfile = "surf_data.json"
+    dos.set_database("surf_data.json")
     dos.system = surface
     dos.numpeaks = numpeaks
     dos.relative_to_fermi = relative_to_fermi
-    descriptor = dos.get_descriptors()
+    descriptor = dos.get_descriptors(adsorbate=False, with_centers=with_centers)
 
     data.update(descriptor)
     db_surf.insert(data)
