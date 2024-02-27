@@ -90,7 +90,7 @@ if "vasp" in calculator:
     nelmin =  5
     nelm   =  40
     potim  =  0.10
-    nsw    =  2  # 200
+    nsw    =  100
     ediff  =  1.0e-4
     ediffg = -0.05
     kpts   =  [1, 1, 1]
